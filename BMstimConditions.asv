@@ -394,8 +394,8 @@ c_MUA_cont1_bin = mean(baMUA_cont1_bin,1); %0.1 contrast in both eyes
 c_MUA_cont2_bin = mean(baMUA_cont2_bin,1); %0.2 contrast in both eyes
 c_MUA_cont5_bin = mean(baMUA_cont5_bin,1); %0.5 contrast in both eyes
 
-E = [c_MUA_cont0;c_MUA_cont1;c_MUA_cont2;c_MUA_cont5]; % Monocular: 4x1 vector of avg'd values (1 value for each contrast lvl)
-B = [c_MUA_cont0;c_MUA_cont1_bin;c_MUA_cont2_bin;c_MUA_cont5_bin]; % Binocular: 4x1 vector of avg'd values (1 value for each contrast lvl) 
+E = [c_MUA_cont0;c_MUA_cont1;c_MUA_cont2;c_MUA_cont5]; % 
+B = [c_MUA_cont0;c_MUA_cont1_bin;c_MUA_cont2_bin;c_MUA_cont5_bin];
 contrasts = [0 .1 .2 .5];
 
 h3 = figure('Position', [10 10 380 350]);
@@ -459,7 +459,7 @@ set(gca,'box','off');
 legend('Monocular stimulus','Binocular stimulus','Location','NorthWest');
 hold off
 
-%% contact 20
+%% contact 21
 deresp = (E(:,20));
 biresp = (B(:,20));
 mn                = min(deresp); 
@@ -478,6 +478,32 @@ ylabel('Normalized neural response');
 set(gca,'box','off');
 legend('Monocular stimulus','Binocular stimulus','Location','NorthWest');
 hold off
+
+%% normalized to monocular response, all contacts
+deresp = mean(E,2);
+biresp = mean(B,2);
+mn                = min(deresp); 
+mx                = max(deresp); 
+normde       = (deresp - mn)/(mx - mn); 
+normbi       = (biresp - mn)/(mx - mn);
+
+h7 = figure;
+plot(contrasts, normde,'-o');
+hold on
+plot(contrasts, normbi,'-o','color','b');
+title('Probewide')
+ylim([0 2]);
+xlabel('Contrast level')
+ylabel('Normalized neural response');
+set(gca,'box','off');
+legend('Monocular response','Binocular response','Location','NorthWest');
+hold off
+
+%% testing condition vectors
+test0 = STIM.LFP(:,:,cont_0);
+test1 = STIM.LFP(:,:,cont_1);
+test2 = STIM.LFP(:,:,cont_2);
+test3 = STIM.LFP(:,:,cont_5);
 
 %% testing CRF example code
 
@@ -510,12 +536,12 @@ plot([1:100],aRc,'g')
 ylim([0 100])
 legend('monocular CRF','multiplicative gain','contrast gain',...
    'additive gain','Location','NorthWest')
-%% Testing Kacie's code for CRF curve fitting
+%%
 id = 5;
 
 clear DE_example BIN_example 
-DE_example = E(:,5); %not sure if this is the right input for the runCRFFit function below
-BIN_example = B(:,5); %^
+DE_example = E(:,5);
+BIN_example = B(:,5);
 unqc = contrasts;
 colors = parula(10); 
 
