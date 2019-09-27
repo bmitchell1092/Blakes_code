@@ -15,13 +15,12 @@ else
     directory  = '/users/bmitc/Documents/MATLAB/data/';
 end
 
-BRdatafile = '161006_E_rfori001';
+BRdatafile = '161006_E_cinteroc002';
 filename   = [directory BRdatafile]; 
 
 addpath(genpath(directory))
 addpath(genpath(npmkdir))
 addpath(genpath(nbanadir))
-
 %% Loading stimulus conditions
 
 patterns   = {'rforidrft','rfsfdrft','posdisparitydrft','disparitydrft','cinterocdrft','coneinterocdrft','conedrft', ...
@@ -218,7 +217,7 @@ CSD = padarray(CSD,[0 1],NaN,'replicate'); % pad array if you want to keep the m
 
 %% trigger the neural data to the event codes of interest
 pre   = -50;
-post  = 300; 
+post  = 1200; 
 
 STIM.LFP  = trigData(LFP,floor(STIM.onsets./30),-pre,post); % this function is MLAnalysisOnline or nbanalysis. pre variable is in absolute units 
 STIM.CSD  = trigData(CSD,floor(STIM.onsets./30),-pre,post); 
@@ -405,7 +404,7 @@ bcd = STIM.CSD(1:351,:,:)- mean_basetp; %performs calculation, labeled bcd
 mean_blc_CSD = mean(bcd, 3); %averages the contact samples by trial (the third dimension of the structure)
 h = figure('Position', [0,0,280,291*2]); %the dimensions of the figure
 
-V1ch = [1:24];
+V1ch = 1:24;
 
 fcsd = filterCSD(mean_blc_CSD')'; % filter baseline corrected CSD
 imagesc(pre:post,V1ch,fcsd'); % V1 ch is vector with channel numbers

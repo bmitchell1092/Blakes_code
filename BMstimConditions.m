@@ -21,7 +21,7 @@ addpath(genpath(npmkdir))
 addpath(genpath(nbanalysisdir))
 addpath(genpath(datadir))
 
-BRdatafile = '161003_E_cinteroc002'; 
+BRdatafile = '170421_I_cinteroc003'; 
 filename = [datadir BRdatafile];
 
 %% Define stimulus patterns and select from among them
@@ -44,7 +44,7 @@ end
 
 if isequal(match,'dotmapping')
     ext = '.gDotsXY_di';
-elseif isequal(match,'cinteroc')
+elseif isequal(match,'161003_E_cinteroc')
     ext = ['.g' upper(match) 'DRFTGrating_di'];
 else
     ext = ['.g' upper(match) 'Grating_di'];
@@ -229,16 +229,18 @@ CSD = padarray(CSD,[0 1],NaN,'replicate'); % pad array if you want to keep the m
 %% trigger the neural data to the event codes of interest                                         
 
 pre   = -50;
-post  = 300; 
+post  = 300;
+%post  = ((STIM.offsets(1)-STIM.onsets(1))/30)+50; 
 
 STIM.LFP  = trigData(LFP,STIM.onsetsdown,-pre,post); %pre variable is in absolute units 
 STIM.CSD  = trigData(CSD,STIM.onsetsdown,-pre,post); 
 STIM.aMUA = trigData(MUA,STIM.onsetsdown,-pre,post); 
 
 %% Averaging across trials
-fields.STIM = fieldnames(STIM);
-for avtr=1:numel(fields.STIM)
-    AVG.(fields.STIM{avtr})  = mean(STIM.(fields.STIM{avtr}),3);
+
+data.STIM = fieldnames(STIM);
+for avtr=1:numel(data.STIM)
+    AVG.(data.STIM{avtr})  = mean(STIM.(data.STIM{avtr}),3);
 end
 
 %% Baseline correct & Plot! 
@@ -249,44 +251,46 @@ end
 [bAVG_CSD] = BMbasecorrect(AVG.CSD);
 
 refwin = pre:post;
+channels = 1:nct;
+fauxcd = 0:(1/24):1; %used in the f_shadedlineplotbydepth function as 'unknown' cortical depth
 
-h1 = figure;
+h1 = figure('position',[15,135,1200,500]);
 subplot(1,4,1)
-f_ShadedLinePlotbyDepth(bAVG_LFP,1:24,refwin,[],1)
+f_ShadedLinePlotbyDepth(AVG.LFP,[],refwin,channels,1.2)
 hold on
 plot([0 0], ylim,'k')
-plot([800 800], ylim,'k')
-title({'LFP',BRdatafile}, 'Interpreter', 'none')
+plot([1200 1200], ylim,'k')
+title('LFP')
 xlabel('time (ms)')
 ylabel('contacts indexed down from surface')
 hold off
 
 subplot(1,4,2)
-f_ShadedLinePlotbyDepth(bAVG_aMUA,1:24,refwin,[],1)
+f_ShadedLinePlotbyDepth(AVG.aMUA,[],refwin,channels,1.2)
 hold on
 plot([0 0], ylim,'k')
-plot([800 800], ylim,'k')
-title({'aMUA',BRdatafile}, 'Interpreter', 'none')
+plot([1200 1200], ylim,'k')
+title('aMUA')
 xlabel('time (ms)')
 ylabel('contacts indexed down from surface')
 hold off
 
 subplot(1,4,3)
-f_ShadedLinePlotbyDepth(bAVG_CSD,1:24,refwin,[],1)
+f_ShadedLinePlotbyDepth(AVG.CSD,[],refwin,channels,1.2)
 hold on
 plot([0 0], ylim,'k')
-plot([800 800], ylim,'k')
-title({'CSD',BRdatafile}, 'Interpreter', 'none')
+plot([((STIM.offsets(1)-STIM.onsets(1))/30)], ylim,'k')
+title('CSD')
 xlabel('time (ms)')
 ylabel('contacts indexed down from surface')
 hold off
 
 % filtered CSD
 
-bAVG_iCSD = filterCSD(bAVG_CSD')';
+bAVG_iCSD = filterCSD(AVG.CSD')';
 
 subplot(1,4,4)
-imagesc(refwin,1:24,bAVG_iCSD');
+imagesc(refwin,channels,bAVG_iCSD');
 hold on
 colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
 colorbar; v = vline(0); set(v,'color','k','linestyle','-.','linewidth',1);
@@ -294,89 +298,94 @@ set(gca,'tickdir','out');
 climit = max(abs(get(gca,'CLim'))*1);
 set(gca,'CLim',[-700 700],'Box','off','TickDir','out')
 %plot([0 0], ylim,'k')
-%plot([-800 800], ylim,'k')
-title({'Interpolated CSD',BRdatafile}, 'Interpreter', 'none')
+plot([1200 1200], ylim,'k')
+title('Interpolated CSD')
 xlabel('time (ms)')
 clrbar = colorbar; clrbar.Label.String = 'nA/mm^3'; 
 set(clrbar.Label,'rotation',270,'fontsize',10,'VerticalAlignment','middle');
 ylabel('contacts indexed down from surface');
 hold off
 
-sgtitle('All data triggered to stim onset');
+sgtitle({'All trials triggered to stim onset',BRdatafile}, 'Interpreter', 'none');
+
+%export_fig('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures', '-png');
 
 %% Plotting different conditions
 
 %% Vector of logicals for conditions of interest
-
+%f = fields(STIM.conditions) = {'contrast0','contrast1','contrast2'};
 cont_0 = STIM.contrast == 0 & STIM.fixedc == 0;
 cont_1 = STIM.contrast == 0.1060 & STIM.fixedc == 0;
 cont_2 = STIM.contrast == 0.2240 & STIM.fixedc == 0;
 cont_5 = STIM.contrast == 0.4730 & STIM.fixedc == 0;
 
-cont_1bin = STIM.contrast == 0.1060 & STIM.fixedc == 0.1060;
-cont_2bin = STIM.contrast == 0.2240 & STIM.fixedc == 0.2240;
-cont_5bin = STIM.contrast == 0.4730 & STIM.fixedc == 0.4730;
+cont_1b = STIM.contrast == 0.1060 & STIM.fixedc == 0.1060;
+cont_2b = STIM.contrast == 0.2240 & STIM.fixedc == 0.2240;
+cont_5b = STIM.contrast == 0.4730 & STIM.fixedc == 0.4730;
 
 % get average across logical-selected trials.
 
-aMUA_cont0 = mean(STIM.aMUA(:,:,cont_0),3);
-aMUA_cont1 = mean(STIM.aMUA(:,:,cont_1),3);
-aMUA_cont2 = mean(STIM.aMUA(:,:,cont_2),3);
-aMUA_cont5 = mean(STIM.aMUA(:,:,cont_5),3);
+cont0 = mean(STIM.aMUA(:,:,cont_0),3);
 
-aMUA_cont1_bin = mean(STIM.aMUA(:,:,cont_1bin),3);
-aMUA_cont2_bin = mean(STIM.aMUA(:,:,cont_2bin),3);
-aMUA_cont5_bin = mean(STIM.aMUA(:,:,cont_5bin),3);
+cont1 = mean(STIM.aMUA(:,:,cont_1),3);
+cont2 = mean(STIM.aMUA(:,:,cont_2),3);
+cont5 = mean(STIM.aMUA(:,:,cont_5),3);
+
+cont1b = mean(STIM.aMUA(:,:,cont_1b),3);
+cont2b = mean(STIM.aMUA(:,:,cont_2b),3);
+cont5b = mean(STIM.aMUA(:,:,cont_5b),3);
 
 % baseline correct
-baMUA_cont0 = BMbasecorrect(aMUA_cont0);
-baMUA_cont1 = BMbasecorrect(aMUA_cont1);
-baMUA_cont2 = BMbasecorrect(aMUA_cont2);
-baMUA_cont5 = BMbasecorrect(aMUA_cont5);
+bc_cont0 = BMbasecorrect(cont0);
 
-baMUA_cont1_bin = BMbasecorrect(aMUA_cont1_bin);
-baMUA_cont2_bin = BMbasecorrect(aMUA_cont2_bin);
-baMUA_cont5_bin = BMbasecorrect(aMUA_cont5_bin);
+bc_cont1 = BMbasecorrect(cont1);
+bc_cont2 = BMbasecorrect(cont2);
+bc_cont5 = BMbasecorrect(cont5);
+
+bc_cont1b = BMbasecorrect(cont1b);
+bc_cont2b = BMbasecorrect(cont2b);
+bc_cont5b = BMbasecorrect(cont5b);
 
 %plot all contacts over time
 
-h2 = figure;
+h2 = figure('position',[15,135,1200,500]);
 subplot(1,4,1);
-f_ShadedLinePlotbyDepth(aMUA_cont0,0:(1/24):1,refwin,1:24,1)
+f_ShadedLinePlotbyDepth(cont0,1:24,refwin,1:24,1)
 hold on
 plot([0 0], ylim,'k')
-plot([800 800], ylim,'k')
-title({'0 contrast in both eyes',BRdatafile}, 'Interpreter', 'none')
+plot([1200 1200], ylim,'k')
+%ylim([-2 2]);
+title('0 contrast in both eyes');
 xlabel('time (ms)')
 ylabel('contacts indexed down from surface')
 hold off
 
 subplot(1,4,2);
-f_ShadedLinePlotbyDepth(aMUA_cont1,0:(1/24):1,refwin,1:24,1)
+f_ShadedLinePlotbyDepth(cont1,1:24,refwin,1:24,1)
 hold on
 plot([0 0], ylim,'k')
-plot([800 800], ylim,'k')
-title({'0.1 contrast in DE',BRdatafile}, 'Interpreter', 'none')
+plot([1200 1200], ylim,'k')
+title('0.1 contrast in DE');
 xlabel('time (ms)')
 ylabel('contacts indexed down from surface')
 hold off
 
 subplot(1,4,3);
-f_ShadedLinePlotbyDepth(aMUA_cont2,0:(1/24):1,refwin,1:24,1)
+f_ShadedLinePlotbyDepth(cont2,1:24,refwin,1:24,1)
 hold on
 plot([0 0], ylim,'k')
-plot([800 800], ylim,'k')
-title({'0.2 contrast in DE',BRdatafile}, 'Interpreter', 'none')
+plot([1200 1200], ylim,'k')
+title('0.2 contrast in DE');
 xlabel('time (ms)')
 ylabel('contacts indexed down from surface')
 hold off
 
 subplot(1,4,4);
-f_ShadedLinePlotbyDepth(aMUA_cont5,0:(1/24):1,refwin,1:24,1)
+f_ShadedLinePlotbyDepth(cont5,1:24,refwin,1:24,1)
 hold on
 plot([0 0], ylim,'k')
-plot([800 800], ylim,'k')
-title({'0.5 contrast in DE',BRdatafile}, 'Interpreter', 'none')
+plot([1200 1200], ylim,'k')
+title('0.5 contrast in DE');
 xlabel('time (ms)')
 ylabel('contacts indexed down from surface')
 hold off
@@ -384,23 +393,26 @@ hold off
 sgtitle({'aMUA | Varying contrast to dominant eye | ',BRdatafile},'Interpreter','none');
 %% Collapsing across time to generate a single value for each contrast level
 
-c_MUA_cont0 = mean(baMUA_cont0,1); %c stands for collapsed; 0 contrast in both eyes
+c_cont0 = mean(bc_cont0(pre+90:post,:),1); %c stands for collapsed; 0 contrast in both eyes
 % monocular stimulus
-c_MUA_cont1 = mean(baMUA_cont1,1); %0.1 contrast in DE, 0 in nonDE
-c_MUA_cont2 = mean(baMUA_cont2,1); %0.2 contrast in DE, 0 in nonDE
-c_MUA_cont5 = mean(baMUA_cont5,1); %0.5 contrast in DE, 0 in nonDE
+c_cont1 = mean(bc_cont1(pre+90:post,:),1); %0.1 contrast in DE, 0 in nonDE
+c_cont2 = mean(bc_cont2(pre+90:post,:),1); %0.2 contrast in DE, 0 in nonDE
+c_cont5 = mean(bc_cont5(pre+90:post,:),1); %0.5 contrast in DE, 0 in nonDE
 % binocular stimuli
-c_MUA_cont1_bin = mean(baMUA_cont1_bin,1); %0.1 contrast in both eyes
-c_MUA_cont2_bin = mean(baMUA_cont2_bin,1); %0.2 contrast in both eyes
-c_MUA_cont5_bin = mean(baMUA_cont5_bin,1); %0.5 contrast in both eyes
+c_cont1b = mean(bc_cont1b(pre+90:post,:),1); %0.1 contrast in both eyes
+c_cont2b = mean(bc_cont2b(pre+90:post,:),1); %0.2 contrast in both eyes
+c_cont5b = mean(bc_cont5b(pre+90:post,:),1); %0.5 contrast in both eyes
 
-E = [c_MUA_cont0;c_MUA_cont1;c_MUA_cont2;c_MUA_cont5]; % Monocular: 4x1 vector of avg'd values (1 value for each contrast lvl)
-B = [c_MUA_cont0;c_MUA_cont1_bin;c_MUA_cont2_bin;c_MUA_cont5_bin]; % Binocular: 4x1 vector of avg'd values (1 value for each contrast lvl) 
+E = [c_cont0;c_cont1;c_cont2;c_cont5]; % Monocular: 4x1 vector of avg'd values (1 value for each contrast lvl)
+B = [c_cont0;c_cont1b;c_cont2b;c_cont5b]; % Binocular: 4x1 vector of avg'd values (1 value for each contrast lvl)
+C = [E;B]; %combined into one matrix
 contrasts = [0 .1 .2 .5];
+%% bar plots
 
-h3 = figure('Position', [10 10 380 350]);
+figure('Position', [60 211 1125 320]);
+subplot(1,3,1);
 %superbar(E(:,5),'BarFaceColor',[.75 .75 .75],'BarEdgeColor','k','BarLineWidth',0.8);
-bar(E(:,5))
+bar(E(:,5),'FaceColor',[.75 .75 .75],'EdgeColor','k','LineWidth',0.8);
 title('Contact 5')
 set(gca,'box','off');
 ylim([0 1.5]);
@@ -408,9 +420,9 @@ xlabel('Contrast in Dominant Eye')
 ylabel('AVG multi-unit activity (uV)');
 xticklabels({'0','0.1','0.2','0.5'})
 
-h4 = figure('Position', [10 10 380 350]);
+subplot(1,3,2);
 %superbar(E(1:4,15),'BarFaceColor',[.75 .75 .75],'BarEdgeColor','k','BarLineWidth',0.8)
-bar(E(:,15));
+bar(E(:,15),'FaceColor',[.75 .75 .75],'EdgeColor','k','LineWidth',0.8);
 ylim([0 1.5]);
 title('Contact 15')
 set(gca,'box','off');
@@ -418,69 +430,102 @@ xlabel('Contrast in Dominant Eye')
 ylabel('AVG multi-unit activity (uV)');
 xticklabels({'0','0.1','0.2','0.5'})
 
-%% normalized to contact-specific monocular response: contact 5
+subplot(1,3,3);
+%superbar(E(:,5),'BarFaceColor',[.75 .75 .75],'BarEdgeColor','k','BarLineWidth',0.8);
+bar(E(:,20),'FaceColor',[.75 .75 .75],'EdgeColor','k','LineWidth',0.8);
+title('Contact 20')
+set(gca,'box','off');
+ylim([0 1.5]);
+xlabel('Contrast in Dominant Eye')
+ylabel('AVG multi-unit activity (uV)');
+xticklabels({'0','0.1','0.2','0.5'})
+
+sgtitle({'aMUA averaged across time (40ms-stim offset) for each contact',BRdatafile},'Interpreter','none');
+%% normalization 
 deresp = (E(:,5));
 biresp = (B(:,5));
-mn                = min(deresp); 
-mx                = max(deresp); 
+bothresp = (C(:,5));
+mn                = min(bothresp); 
+mx                = max(bothresp); 
 normde       = (deresp - mn)/(mx - mn); 
 normbi        = (biresp - mn)/(mx - mn);
 
-h5 = figure;
+h5 = figure('Position', [60 211 1125 376.6]);
+subplot(1,3,1);
 plot(contrasts, normde,'-o', 'color','k');
 hold on
 plot(contrasts, normbi,'-o', 'color','b');
 title('Contact 5')
-ylim([0 2]);
+ylim([0 1]);
 xlabel('Contrast level')
-ylabel('Normalized neural response');
+ylabel('Normalized contrast response');
 set(gca,'box','off');
-legend('Monocular stimulus','Binocular stimulus','Location','NorthWest');
+legend('Monocular stimulus','Binocular stimulus','Location','SouthEast');
 hold off
 
-%% contact 15
+% contact 15
 
 deresp = (E(:,15));
 biresp = (B(:,15));
-mn                = min(deresp); 
-mx                = max(deresp); 
+bothresp = (C(:,15));
+mn                = min(bothresp); 
+mx                = max(bothresp); 
 normde       = (deresp - mn)/(mx - mn); 
 normbi        = (biresp - mn)/(mx - mn);
 
-h9 = figure;
+subplot(1,3,2);
 plot(contrasts, normde,'-o', 'color','k');
 hold on
 plot(contrasts, normbi,'-o', 'color','b');
 title('Contact 15')
-ylim([0 2]);
+ylim([0 1]);
 xlabel('Contrast level')
-ylabel('Normalized neural response');
+ylabel('Normalized contrast response');
 set(gca,'box','off');
-legend('Monocular stimulus','Binocular stimulus','Location','NorthWest');
+legend('Monocular stimulus','Binocular stimulus','Location','SouthEast');
 hold off
 
-%% contact 20
+% contact 20
+
 deresp = (E(:,20));
 biresp = (B(:,20));
-mn                = min(deresp); 
-mx                = max(deresp); 
+bothresp = (C(:,20));
+mn                = min(bothresp); 
+mx                = max(bothresp); 
 normde       = (deresp - mn)/(mx - mn); 
 normbi        = (biresp - mn)/(mx - mn);
 
-h9 = figure;
+subplot(1,3,3);
 plot(contrasts, normde,'-o', 'color','k');
 hold on
 plot(contrasts, normbi,'-o', 'color','b');
 title('Contact 20')
-ylim([0 2]);
+ylim([0 1]);
 xlabel('Contrast level')
-ylabel('Normalized neural response');
+ylabel('Normalized contrast response');
 set(gca,'box','off');
-legend('Monocular stimulus','Binocular stimulus','Location','NorthWest');
+legend('Monocular stimulus','Binocular stimulus','Location','SouthEast');
 hold off
 
-%% testing CRF example code
+sgtitle({'Monocular vs binocular stimulation as a function of contrast',BRdatafile},'Interpreter','none');
 
+%% Normalization with z-scores
+
+normdata = nan(size(STIM.aMUA,1),size(STIM.aMUA,2),size(STIM.aMUA,3));
+
+for t = 1:size(STIM.aMUA,3)
+    for c = 1:size(STIM.aMUA,2)
+        normdata(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t))/std(STIM.aMUA(25:75,c,t)));
+    end
+end
+
+AVG_normdata = mean(normdata,3);
+AVG_normdata = mean(AVG_normdata(90:1200,:),1);
+
+
+
+%% testing CRF example code
+%{
 Gr = 100; %multiplicative response gain factor (=highest response amplitude)
 Gc = 50;  %normalization pool (determines x position)
 q = 10;   %exponent that determines rise and saturation
@@ -534,3 +579,4 @@ plot(unqc.*100',BIN_example,'o','Color',colors(5,:));
 set(gca,'xscale','log','box','off','tickdir','out','linewidth',1.5); 
 title(gca,num2str(id)); 
 
+%}
