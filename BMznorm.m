@@ -44,7 +44,7 @@ end
 
 if isequal(match,'dotmapping')
     ext = '.gDotsXY_di';
-elseif isequal(match,'161003_E_cinteroc')
+elseif isequal(BRdatafile,'161003_E_cinteroc002')
     ext = ['.g' upper(match) 'DRFTGrating_di'];
 else
     ext = ['.g' upper(match) 'Grating_di'];
@@ -93,6 +93,8 @@ end
 
 if any(strfind(firstlabel,'eD'))
     ebank = 'eD'; %electrode bank
+elseif any(strfind(firstlabel, 'eC'))
+    ebank = 'eC';
 else 
     ebank = 'eB';
 end
@@ -258,7 +260,7 @@ clear i
 avg_fields = fieldnames(avg);
 for i = 1:length(avg_fields)
 subplot(1,4,i)
-f_ShadedLinePlotbyDepth((avg.(avg_fields{i})),[],refwin,channels,1.2);
+f_ShadedLinePlotbyDepth((avg.(avg_fields{i})),1:24,refwin,channels,1);
 hold on
 plot([0 0], ylim,'k')
 plot([1200 1200], ylim,'k')
@@ -268,7 +270,7 @@ ylabel('contacts indexed down from surface')
 hold off
 end
 
-bAVG_iCSD = filterCSD(avg.CSD')';
+bAVG_iCSD = filterCSD(bsl.CSD')';
 
 subplot(1,4,4)
 imagesc(refwin,channels,bAVG_iCSD');
@@ -289,8 +291,8 @@ hold off
 
 sgtitle({'All trials triggered to stim onset',BRdatafile}, 'Interpreter', 'none');
 
-%cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-%export_fig BRdatafile -png
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig 170421_E_snapshot -jpg -transparent
 
 %% Contrast conditions
 
@@ -329,19 +331,25 @@ end
 
 sgtitle({'aMUA | Varying contrast to dominant eye | ',BRdatafile},'Interpreter','none');
 
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig 170421_I_contrasts -jpg -transparent
+
 %% Z-score Normalization for aMUA
 
 zMUA = nan(size(STIM.aMUA,1),size(STIM.aMUA,2),size(STIM.aMUA,3));
 
 for t = 1:size(STIM.aMUA,3)
     for c = 1:size(STIM.aMUA,2)
-        zMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t))./std(STIM.aMUA(25:75,c,t)));
+        zMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(1:50,c,t)))./(std(STIM.aMUA(1:50,c,t)));
     end
 end
 
 avg.zMUA = mean(zMUA,3);
+bsl.zMUA = BMbasecorrect(avg.zMUA);
 
-h2 = figure('position',[15,135,1200,500]);
+%% plotting z-score normalized aMUA (all contacts as a function of contrast)
+
+h3 = figure('position',[15,135,1200,500]);
 clear i 
 for i = 1:length(contrast)
 subplot(1,6,i);
@@ -361,9 +369,129 @@ end
 
 sgtitle({'Z score normalized MUA | Varying contrast to dominant eye | ',BRdatafile},'Interpreter','none');
 
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig 161003_I_z-score_contrasts -jpg -transparent
+
 %% work in progress 
 %  Now that I have my conditions as logicals in a structure and my aMUA in
 %  z-scores, time to pull out AVG'd z-scored aMUA for each condition
 
+MzMUA.contrast0 = mean(zMUA(:,:,STIM.Mconditions(1,:)),3);
+MzMUA.contrast5 = mean(zMUA(:,:,STIM.Mconditions(2,:)),3);
+MzMUA.contrast10 = mean(zMUA(:,:,STIM.Mconditions(3,:)),3);
+MzMUA.contrast20 = mean(zMUA(:,:,STIM.Mconditions(4,:)),3);
+MzMUA.contrast50 = mean(zMUA(:,:,STIM.Mconditions(5,:)),3);
+MzMUA.contrast100 = mean(zMUA(:,:,STIM.Mconditions(6,:)),3);
+
+BzMUA.contrast0 = mean(zMUA(:,:,STIM.Bconditions(1,:)),3);
+BzMUA.contrast5 = mean(zMUA(:,:,STIM.Bconditions(2,:)),3);
+BzMUA.contrast10 = mean(zMUA(:,:,STIM.Bconditions(3,:)),3);
+BzMUA.contrast20 = mean(zMUA(:,:,STIM.Bconditions(4,:)),3);
+BzMUA.contrast50 = mean(zMUA(:,:,STIM.Bconditions(5,:)),3);
+BzMUA.contrast100 = mean(zMUA(:,:,STIM.Bconditions(6,:)),3); 
 
 
+%% collapsing across time for each condition
+clear i
+monfields = fieldnames(MzMUA);
+for i=1:numel(monfields)
+    coll_mon.(monfields{i})  = mean(MzMUA.(monfields{i})(80:250,:),1);
+end
+
+clear i
+binfields = fieldnames(BzMUA);
+for i=1:numel(binfields)
+    coll_bin.(binfields{i})  = mean(BzMUA.(binfields{i})(80:250,:),1);
+end
+
+%% Creating matrices for mon vs bin stimulation: collapsed values across time for each contrast level, for each contact;
+MON = [coll_mon.contrast0;coll_mon.contrast5;coll_mon.contrast10;coll_mon.contrast20;coll_mon.contrast50;coll_mon.contrast100];
+
+BIN = [coll_bin.contrast0;coll_bin.contrast5;coll_bin.contrast10;coll_bin.contrast20;coll_bin.contrast50;coll_bin.contrast100];
+
+%% plotting 
+
+figure('Position', [60 211 1125 320]);
+subplot(1,4,1)
+y = [MON(:,5),BIN(:,5)];
+b1 = bar(y,'FaceColor','flat','EdgeColor','k','LineWidth',0.8);
+%b1.CData({MON(:,5)}) = 'r';
+hold on
+set(gca,'box','off');
+ylim([-1 3.5]);
+xticklabels({'0','0.05','0.1','0.2','0.5','1'})
+xlabel('contrast level')
+ylabel('Z-normalized MUA')
+title('contact 5');
+hold off
+
+subplot(1,4,2)
+bar(MON(:,10),'FaceColor',[.75 .75 .75],'EdgeColor','k','LineWidth',0.8);
+hold on
+set(gca,'box','off');
+ylim([-1 3.5]);
+xticklabels({'0','0.05','0.1','0.2','0.5','1'})
+xlabel('contrast level')
+ylabel('Z-normalized MUA')
+title('contact 10');
+hold off
+
+subplot(1,4,3)
+bar(MON(:,15),'FaceColor',[.75 .75 .75],'EdgeColor','k','LineWidth',0.8);
+hold on
+set(gca,'box','off');
+ylim([-1 3.5]);
+xticklabels({'0','0.05','0.1','0.2','0.5','1'})
+xlabel('contrast level')
+ylabel('Z-normalized MUA')
+title('contact 15');
+hold off
+
+subplot(1,4,4)
+bar(MON(:,20),'FaceColor',[.75 .75 .75],'EdgeColor','k','LineWidth',0.8);
+hold on
+set(gca,'box','off');
+ylim([-1 3.5]);
+xticklabels({'0','0.05','0.1','0.2','0.5','1'})
+xlabel('contrast level')
+ylabel('Z-normalized MUA')
+title('contact 20');
+hold off
+
+% sgtitle({'Z score normalized MUA | Varying contrast to dominant eye | ',BRdatafile},'Interpreter','none');
+
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig 170421_I_bar-contrasts -jpg -transparent
+
+
+%% hypothetical re-structuring of conditions
+figure();
+plot(contrast, MON(:,15),'-o', 'color','k');
+hold on
+plot(contrast, BIN(:,15),'-o', 'color','b');
+xlabel('contrast level')
+ylabel('Normalized contrast response');
+legend('Monocular stimulus','Binocular stimulus','Location','SouthEast');
+title('Monocular vs binocular stimulation: contact 12');
+hold off
+
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig 170421_I_line-contrasts -jpg -transparent
+
+% C_DE = unique(STIM.contrast);
+% FC_NDE = unique(STIM.fixedc);
+% 
+% data_header = struct();
+% data_header.DE = [];
+% 
+% for temp_c = C_DE
+%     for temp_f = FC_NDE
+%         
+%          eval(['data_header.DE' ...
+%              '_NDE='...
+%              'STIM.contrast =' num2str(temp_c)...
+%              ' & STIM.fixedc ==' num2str(temp_f)])
+%     end
+% end
+
+%% 
