@@ -204,7 +204,7 @@ end
 
 %% calculate CSD 
 % calculate CSD before triggering to trials OR on the trial data BUT not on
-% the mean LFP. 
+% the mean LFP.
 
 CSD = mod_iCSD(LFP')';  % this function takes LFP in channels x samples so let's transpose LFP and then flip it right back 
                         % feed in units of microV and get back units of
@@ -235,7 +235,7 @@ avg.CSD = mean(STIM.CSD,3);
 [bsl.aMUA] = BMbasecorrect(avg.aMUA);
 [bsl.CSD] = BMbasecorrect(avg.CSD);
 
-%% Plotting all averaged, baseline corrected trials
+%% Plotting all averaged, baseline corrected trials (SNAPSHOT)
 
 refwin = pre:post; % reference window for line plotting
 channels = 1:nct;  % how many channels (nct is a predefined variable with the exact number of channels
@@ -333,211 +333,99 @@ end
 avg.zMUA = mean(zMUA,3);
 bsl.zMUA = BMbasecorrect(avg.zMUA);
 
-%% plotting z-score normalized aMUA (all contacts as a function of contrast)
 
-h3 = figure('position',[15,135,1200,500]);
-clear i 
-for i = 1:length(contrast)
-subplot(1,length(contrast),i);
-ShadedLinePlotbyDepth(mean(zMUA(:,:,STIM.Mconditions(i,:)),3),1:24,refwin,channels,1)
-hold on
-plot([0 0], ylim,'k')
-plot([offset offset], ylim,'k')
-if i == 1
-    title({contrast(i),' contrast in both eyes'});
-else 
-    title({contrast(i),' contrast in DE'});
-end
-xlabel('time (ms)')
-ylabel('contacts indexed down from surface')
-hold off
-end
-
-sgtitle({'Z score normalized MUA | Varying contrast to dominant eye | ',BRdatafile},'Interpreter','none');
-
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig 161003_I_z-score_contrasts -jpg -transparent
-
-%% work in progress 
+%% Averaged trials by condition
 %  Now that I have my conditions as logicals in a structure and my aMUA in
 %  z-scores, time to pull out AVG'd z-scored aMUA for each condition
-%% OLD
-MzMUA.contrast1 = mean(zMUA(:,:,STIM.Mconditions(1,:)),3);
-MzMUA.contrast2 = mean(zMUA(:,:,STIM.Mconditions(2,:)),3);
-MzMUA.contrast3 = mean(zMUA(:,:,STIM.Mconditions(3,:)),3);
-MzMUA.contrast4 = mean(zMUA(:,:,STIM.Mconditions(4,:)),3);
-MzMUA.contrast5 = mean(zMUA(:,:,STIM.Mconditions(5,:)),3);
-% MzMUA.contrast100 = mean(zMUA(:,:,STIM.Mconditions(6,:)),3);
 
-BzMUA.contrast1 = mean(zMUA(:,:,STIM.Bconditions(1,:)),3);
-BzMUA.contrast2 = mean(zMUA(:,:,STIM.Bconditions(2,:)),3);
-BzMUA.contrast3 = mean(zMUA(:,:,STIM.Bconditions(3,:)),3);
-BzMUA.contrast4 = mean(zMUA(:,:,STIM.Bconditions(4,:)),3);
-BzMUA.contrast5 = mean(zMUA(:,:,STIM.Bconditions(5,:)),3);
-% BzMUA.contrast100 = mean(zMUA(:,:,STIM.Bconditions(6,:)),3); 
-
-%% NEW
-% clear m MzMUA BzMUA
-% for m = 1:size(STIM.Mconditions,1)
-%     MzMUA(m).contrast = mean(zMUA(:,:,STIM.Mconditions(m,:)),3); %#ok<SAGROW>
-%     BzMUA(m).contrast = mean(zMUA(:,:,STIM.Bconditions(m,:)),3); %#ok<SAGROW>
-% end
+clear m MzMUA BzMUA
+for m = 1:size(STIM.Mconditions,1)
+    MzMUA(m).contrast = mean(zMUA(:,:,STIM.Mconditions(m,:)),3); %#ok<SAGROW>
+    BzMUA(m).contrast = mean(zMUA(:,:,STIM.Bconditions(m,:)),3); %#ok<SAGROW>
+end
 
 %% collapsing across time for each condition (NEW)
-% clear i coll_mon
-% for i=1:size(MzMUA,2)
-%     coll_mon.contrast(i,:)  = mean(MzMUA(i).contrast(80:330,:),1);
-% end
-% 
-% clear i coll_bin
-% for i=1:size(BzMUA,2)
-%     coll_bin.contrast(i,:)  = mean(BzMUA(i).contrast(80:330,:),1);
-% end
-
-%% OLD
-clear i
-monfields = fieldnames(MzMUA);
-for i=1:numel(monfields)
-    coll_mon.(monfields{i})  = mean(MzMUA.(monfields{i})(80:330,:),1);
+clear i coll_mon
+for i=1:size(MzMUA,2)
+    coll_mon.contrast(i,:)  = mean(MzMUA(i).contrast(80:330,:),1);
 end
 
-clear i
-binfields = fieldnames(BzMUA);
-for i=1:numel(binfields)
-    coll_bin.(binfields{i})  = mean(BzMUA.(binfields{i})(80:330,:),1);
+clear i coll_bin
+for i=1:size(BzMUA,2)
+    coll_bin.contrast(i,:)  = mean(BzMUA(i).contrast(80:330,:),1);
 end
-%% Creating matrices for mon vs bin stimulation: collapsed values across time for each contrast level, for each contact;
-%% OLD
-MON = [coll_mon.contrast1;coll_mon.contrast2;coll_mon.contrast3;coll_mon.contrast4;coll_mon.contrast5];
-% coll_mon.contrast100]
 
-BIN = [coll_bin.contrast1;coll_bin.contrast2;coll_bin.contrast3;coll_bin.contrast4;coll_bin.contrast5];
-% coll_bin.contrast100];
 
 %% Bar plot (NEW)
 
-% h4 = figure('Position', [60 211 1100 300]);
-% subplot(1,4,1)
-% y = [coll_mon.contrast(:,5) coll_bin.contrast(:,5)];
-% b1 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
-% %b1.CData({MON(:,5)}) = 'r';
-% hold on 
-% set(gca,'box','off');
-% ylim([-1 5.5]);
-% xticklabels(contrast)
-% xlabel('contrast level')
-% ylabel('Z-normalized MUA')
-% title('contact 5');
-% hold off
-% 
-% subplot(1,4,2)
-% y = [coll_mon.contrast(:,10) coll_bin.contrast(:,10)];
-% b2 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
-% hold on
-% set(gca,'box','off');
-% ylim([-1 5.5]);
-% xticklabels(contrast)
-% xlabel('contrast level')
-% ylabel('Z-normalized MUA')
-% title('contact 10');
-% hold off
-% 
-% subplot(1,4,3)
-% y = [coll_mon.contrast(:,15) coll_bin.contrast(:,15)];
-% b3 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
-% hold on
-% set(gca,'box','off');
-% ylim([-1 5.5]);
-% xticklabels(contrast)
-% xlabel('contrast level')
-% ylabel('Z-normalized MUA')
-% title('contact 15');
-% %legend('Monocular stimulus','Binocular stimulus','Location','southoutside');
-% hold off
-% 
-% subplot(1,4,4)
-% y = [coll_mon.contrast(:,20) coll_bin.contrast(:,20)];
-% b4 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
-% hold on
-% set(gca,'box','off');
-% ylim([-1 5.5]);
-% xticklabels(contrast)
-% xlabel('contrast level')
-% ylabel('Z-normalized MUA')
-% title('contact 20');
-% hold off
-% 
-% sgtitle({'Monocular vs Binocular response as a function of contrast',BRdatafile},'Interpreter','none');
-% 
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig 170324_I_bar-contrasts -jpg -transparent
-
-figure('Position', [60 211 1100 300]);
+h4 = figure('Position', [60 211 1100 300]);
 subplot(1,4,1)
-y = [MON(:,5) BIN(:,5)];
-b4 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
-hold on
+y = [coll_mon.contrast(:,5) coll_bin.contrast(:,5)];
+b1 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
+%b1.CData({MON(:,5)}) = 'r';
+hold on 
 set(gca,'box','off');
 ylim([-1 5.5]);
-xticklabels({'0','0.05','0.1','0.2','0.5','1'})
+xticklabels(contrast)
 xlabel('contrast level')
 ylabel('Z-normalized MUA')
 title('contact 5');
 hold off
 
 subplot(1,4,2)
-y = [MON(:,10) BIN(:,10)];
-b4 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
+y = [coll_mon.contrast(:,10) coll_bin.contrast(:,10)];
+b2 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
 hold on
 set(gca,'box','off');
 ylim([-1 5.5]);
-xticklabels({'0','0.05','0.1','0.2','0.5','1'})
+xticklabels(contrast)
 xlabel('contrast level')
 ylabel('Z-normalized MUA')
 title('contact 10');
 hold off
 
 subplot(1,4,3)
-y = [MON(:,15) BIN(:,15)];
-b4 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
+y = [coll_mon.contrast(:,15) coll_bin.contrast(:,15)];
+b3 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
 hold on
 set(gca,'box','off');
 ylim([-1 5.5]);
-xticklabels({'0','0.05','0.1','0.2','0.5','1'})
+xticklabels(contrast)
 xlabel('contrast level')
 ylabel('Z-normalized MUA')
 title('contact 15');
+%legend('Monocular stimulus','Binocular stimulus','Location','southoutside');
 hold off
 
 subplot(1,4,4)
-y = [MON(:,20) BIN(:,20)];
+y = [coll_mon.contrast(:,20) coll_bin.contrast(:,20)];
 b4 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
 hold on
 set(gca,'box','off');
 ylim([-1 5.5]);
-xticklabels({'0','0.05','0.1','0.2','0.5','1'})
+xticklabels(contrast)
 xlabel('contrast level')
 ylabel('Z-normalized MUA')
 title('contact 20');
 hold off
 
-sgtitle({'Z score normalized MUA | Varying contrast to dominant eye | ',BRdatafile},'Interpreter','none');
+sgtitle({'Monocular vs Binocular response as a function of contrast',BRdatafile},'Interpreter','none');
 
 % cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig 170421_I_z-score_contrasts -jpg -transparent
+% export_fig 170324_I_bar-contrasts -jpg -transparent
 
 
 %% Line plot -o
-h5 = figure();
-plot(contrast, MON(:,12),'color','k');
-hold on
-plot(contrast, BIN(:,12),'color','b');
-ylim([-1 5.5]);
-xlabel('contrast level')
-ylabel('Normalized contrast response');
-legend('Monocular stimulus','Binocular stimulus','Location','SouthEast');
-title('Monocular vs binocular stimulation: contact 24');
-hold off
+% h5 = figure();
+% plot(contrast, MON(:,12),'color','k');
+% hold on
+% plot(contrast, BIN(:,12),'color','b');
+% ylim([-1 5.5]);
+% xlabel('contrast level')
+% ylabel('Normalized contrast response');
+% legend('Monocular stimulus','Binocular stimulus','Location','SouthEast');
+% title('Monocular vs binocular stimulation: contact 24');
+% hold off
 
 % cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 % export_fig 170421_I_line-contrasts_24 -jpg -transparent
@@ -596,7 +484,7 @@ ylabel('contacts indexed down from surface');
 xticklabels(contrast);
 hold off
 
-%% 
+%% experimental tightplot
 h9 = figure('Position', [0,0,280,291*2]);
 [ha, pos] = tight_subplot(24,1,[0.005 .03],[.1 .15],[.2 .2]); %channels, columns, [spacing], [top and bottom margin], [left and right margin]
 for c = 1:24
