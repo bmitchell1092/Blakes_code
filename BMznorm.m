@@ -21,7 +21,7 @@ addpath(genpath(npmkdir))
 addpath(genpath(nbanalysisdir))
 addpath(genpath(datadir))
 
-BRdatafile = '170324_I_cinteroc002'; 
+BRdatafile = '170421_I_cinteroc003'; 
 filename = [datadir BRdatafile];
 
 %% Define stimulus patterns and select from among them
@@ -278,7 +278,7 @@ hold off
 sgtitle({'All trials triggered to stim onset',BRdatafile}, 'Interpreter', 'none');
 
 % cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig 170324_I_cinteroc002_snapshot -jpg -transparent
+% export_fig 170421_I_snapshot -jpg -transparent
 
 %% Contrast conditions
 
@@ -317,8 +317,8 @@ end
 
 sgtitle({'aMUA | Varying contrast to dominant eye',BRdatafile},'Interpreter','none');
 
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig 170324_I_cinteroc002-contrasts -jpg -transparent
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig 170421_I_contrasts -jpg -transparent
 
 %% Z-score Normalization for aMUA
 
@@ -357,16 +357,16 @@ end
 
 
 %% Bar plot (NEW)
+format bank; rcontrast = round(contrast,2,'significant');
 
 h4 = figure('Position', [60 211 1100 300]);
 subplot(1,4,1)
 y = [coll_mon.contrast(:,5) coll_bin.contrast(:,5)];
 b1 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
-%b1.CData({MON(:,5)}) = 'r';
 hold on 
 set(gca,'box','off');
 ylim([-1 5.5]);
-xticklabels(contrast)
+xticklabels(rcontrast)
 xlabel('contrast level')
 ylabel('Z-normalized MUA')
 title('contact 5');
@@ -378,7 +378,7 @@ b2 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
 hold on
 set(gca,'box','off');
 ylim([-1 5.5]);
-xticklabels(contrast)
+xticklabels(rcontrast)
 xlabel('contrast level')
 ylabel('Z-normalized MUA')
 title('contact 10');
@@ -390,7 +390,7 @@ b3 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
 hold on
 set(gca,'box','off');
 ylim([-1 5.5]);
-xticklabels(contrast)
+xticklabels(rcontrast)
 xlabel('contrast level')
 ylabel('Z-normalized MUA')
 title('contact 15');
@@ -403,7 +403,7 @@ b4 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
 hold on
 set(gca,'box','off');
 ylim([-1 5.5]);
-xticklabels(contrast)
+xticklabels(rcontrast)
 xlabel('contrast level')
 ylabel('Z-normalized MUA')
 title('contact 20');
@@ -412,7 +412,7 @@ hold off
 sgtitle({'Monocular vs Binocular response as a function of contrast',BRdatafile},'Interpreter','none');
 
 % cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig 170324_I_bar-contrasts -jpg -transparent
+% export_fig 170421_I_bar-contrasts -jpg -transparent
 
 
 %% Line plot -o
@@ -447,78 +447,136 @@ sgtitle({'Monocular vs Binocular response as a function of contrast',BRdatafile}
 % end
 
 %% experimental mesh
-h7 = figure();
-surf(contrast,channels,MON');
+format bank; rcontrast = round(contrast,2,'decimals');
+
+h7 = figure('Position', [49 111 1100 434]);
+subplot(1,2,2)
+surf(contrast,channels,coll_bin.contrast');
+hold on
+colormap(colormap('jet')); % this makes the red color the sinks and the blue color the sources (convention)
+colorbar; 
+ax = set(gca,'tickdir','out'); 
+climit = max(abs(get(gca,'CLim'))*1);
+set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
+title('Binocular response')
+xlabel('contrast level')
+clrbar = colorbar; clrbar.Label.String = 'z-score'; 
+set(clrbar.Label,'rotation',270,'fontsize',10,'VerticalAlignment','middle');
+ylabel('contacts');
+xticklabels(0:0.5:1);
+zaxis = get(gca,'zlim');
+set(gca,'zlim',zaxis);
+hold off
+
+
+subplot(1,2,1)
+surf(contrast,channels,coll_mon.contrast');
+hold on
+colormap(colormap('jet')); % this makes the red color the sinks and the blue color the sources (convention)
+colorbar; 
+set(gca,'zlim',zaxis,'tickdir','out');
+%climit = max(abs(get(gca,'CLim'))*1);
+set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
+%zlim = zaxis;
+title('Monocular response')
+xlabel('contrast level')
+clrbar = colorbar; clrbar.Label.String = 'z-score'; 
+set(clrbar.Label,'rotation',270,'fontsize',10,'VerticalAlignment','middle');
+ylabel('contacts');
+xticklabels(0:0.5:1);
+hold off
+
+sgtitle({'Monocular vs Binocular response as a function of contrast',BRdatafile},'Interpreter','none');
+
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig 170421_I_surf -jpg -transparent
+
+%% experimental imagesc
+
+h8 = figure('Position', [49 111 1100 434]);
+
+subplot(1,2,2)
+imagesc(1:length(contrast),channels,coll_bin.contrast');
 hold on
 colormap(colormap('jet')); % this makes the red color the sinks and the blue color the sources (convention)
 colorbar; 
 set(gca,'tickdir','out');  
 climit = max(abs(get(gca,'CLim'))*1);
 set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
-%plot([0 0], ylim,'k')
-%plot([offset offset], ylim,'k','linestyle','-.','linewidth',0.5)
-title('3D contrast response')
-xlabel('contrast level')
-clrbar = colorbar; clrbar.Label.String = 'Z-score'; 
+title('2D Binocular contrast response');
+xlabel('\fontsize{12}contrast level')
+clrbar = colorbar; clrbar.Label.String = 'z-score'; 
 set(clrbar.Label,'rotation',270,'fontsize',10,'VerticalAlignment','middle');
-ylabel('contacts indexed down from surface');
+ylabel('\fontsize{12}contacts indexed down from surface');
 xticklabels(rcontrast);
 hold off
 
-%% experimental imagesc
-h8 = figure();
-imagesc(contrast,channels,MON');
+subplot(1,2,1)
+imagesc(1:length(contrast),channels,coll_mon.contrast');
 hold on
 colormap(colormap('jet')); % this makes the red color the sinks and the blue color the sources (convention)
 colorbar; 
 set(gca,'tickdir','out');  
-climit = max(abs(get(gca,'CLim'))*1);
+%climit = max(abs(get(gca,'CLim'))*1);
 set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
-%plot([0 0], ylim,'k')
-%plot([offset offset], ylim,'k','linestyle','-.','linewidth',0.5)
-title('2D contrast response')
-xlabel('contrast level')
+title('2D Monocular contrast response');
+xlabel('\fontsize{12}contrast level')
 clrbar = colorbar; clrbar.Label.String = 'Z-score'; 
 set(clrbar.Label,'rotation',270,'fontsize',10,'VerticalAlignment','middle');
-ylabel('contacts indexed down from surface');
-xticklabels(contrast);
+ylabel('\fontsize{12}contacts indexed down from surface');
+xticklabels(rcontrast);
 hold off
 
+sgtitle({'Monocular vs Binocular response as a function of contrast',BRdatafile},'Interpreter','none');
+
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig 170421_I_imagesc -jpg -transparent
+
 %% experimental tightplot
-h9 = figure('Position', [0,0,280,291*2]);
+h9 = figure('Position', [280,58,380,582]);
+
 [ha, pos] = tight_subplot(24,1,[0.005 .03],[.1 .15],[.2 .2]); %channels, columns, [spacing], [top and bottom margin], [left and right margin]
 for c = 1:24
     
-    axes(ha(c)); % ha is a variable that gets the axis of each subplot, for each (i)1-24, get axis
+    axes(ha(c)); % ha is a variable that gets the axis of each subplot
     
-    plot(contrast,MON(:,c)); %specify x range (refwin, mean_LFP(1 thru 351 samples, channel i)
-    plot(contrast,BIN(:,c),'-o','color','b');
-    %areafill = area(contrast,MON(:,c));
-    %areafill.FaceColor = [0.75 0.75 0.75];
+    plot(coll_mon.contrast(:,c),'k','linewidth',.5);
+    hold on
+    plot(coll_bin.contrast(:,c),'.-b','linewidth',0.5);
+    %fill([contrast fliplr(contrast)], [coll_mon.contrast(:,c) fliplr(coll_bin.contrast(:,c))], 'b')
+    hold off
     %xlim([-50 300]); %set the limitation of the x axis (sometimes the plot will plot more than you need, creating a gap)
-    ylim([-0.5 2.5]);
+    ylim([-0.5 5]);
     %set(h,'position',get(h,'position').*[1 1 1 1]); %reduce the size of the individual plots
-    line(xlim(), [0,0],'LineStyle','-.','LineWidth', 0.1, 'Color', 'k'); %create black horizontal line on the origin for each plot
-    xline(0,'-.b');
-    yticks(c);
-    grid on
+    %line(xlim(), [0,0],'LineStyle','-.','LineWidth', 0.1, 'Color', 'k'); %create black horizontal line on the origin for each plot
+    %xline(0,'b');
+    yticklabels(c);
+    grid off
     
     if c < 24
     set(gca, 'XTick', '') %removing the units on the x axis (if i < 24) 
-    %set(gca, 'YTick', '') %removing the units on the x axis (if i < 24)
+    % set(gca, 'YTick', '') %removing the units on the x axis (if i < 24)
     p = gca; p.XAxis.Visible = 'off'; %remove the x axis
     end
     
     if c == 1
-        title({'LFP',BRdatafile},'Interpreter', 'none')
+        title({'Contrast response curves',BRdatafile},'Interpreter', 'none')
     end
    
     if c == 12
-        ylabel('\fontsize{12}Contacts in order of depth');
+        ylabel('\fontsize{12}contacts in order of depth');
+    end
+    
+    if c == 24
+        xticklabels(contrast)
     end
 end
 
 set(ha(1:23), 'XTickLabel',''); %remove labels from first 23 plots
 set(ha(1:24), 'box', 'off');
 
-xlabel('\fontsize{12}contrast level');
+xlabel('\fontsize{12}contrast');
+% legend('Monocular stimulus','Binocular stimulus','Location','eastoutside');
+
+%  cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+%  export_fig 170421_I_tightplot -jpg -transparent
