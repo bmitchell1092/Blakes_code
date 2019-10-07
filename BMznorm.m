@@ -235,9 +235,58 @@ avg.CSD = mean(STIM.CSD,3);
 [bsl.aMUA] = BMbasecorrect(avg.aMUA);
 [bsl.CSD] = BMbasecorrect(avg.CSD);
 
+%% Vectors of logicals for conditions of interest
+contrast = unique(STIM.contrast);
+
+clear i
+for i = 1:length(contrast)
+STIM.Mconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == 0; 
+end
+
+clear i
+for i = 1:length(contrast)
+STIM.Bconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == contrast(i); 
+end
+
+%% Z-score Normalization for aMUA
+
+zMUA = nan(size(STIM.aMUA,1),size(STIM.aMUA,2),size(STIM.aMUA,3));
+
+for t = 1:size(STIM.aMUA,3)
+    for c = 1:size(STIM.aMUA,2)
+        zMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(std(STIM.aMUA(25:75,c,t)));
+    end
+end
+
+avg.zMUA = mean(zMUA,3);
+bsl.zMUA = BMbasecorrect(avg.zMUA);
+
+
+%% Averaged trials by condition
+%  Now that I have my conditions as logicals in a structure and my aMUA in
+%  z-scores, time to pull out AVG'd z-scored aMUA for each condition
+
+clear m MzMUA BzMUA
+for m = 1:size(STIM.Mconditions,1)
+    MzMUA(m).contrast = mean(zMUA(:,:,STIM.Mconditions(m,:)),3); %#ok<SAGROW>
+    BzMUA(m).contrast = mean(zMUA(:,:,STIM.Bconditions(m,:)),3); %#ok<SAGROW>
+end
+
+%% collapsing across time for each condition
+clear i coll_mon
+for i=1:size(MzMUA,2)
+    coll_mon.contrast(i,:)  = mean(MzMUA(i).contrast(80:330,:),1);
+end
+
+clear i coll_bin
+for i=1:size(BzMUA,2)
+    coll_bin.contrast(i,:)  = mean(BzMUA(i).contrast(80:330,:),1);
+end
+
+%% Plotting
+
 %% Plotting all averaged, baseline corrected trials (SNAPSHOT)
 
-figname = ({BRdatafile});
 refwin = pre:post; % reference window for line plotting
 channels = 1:nct;  % how many channels (nct is a predefined variable with the exact number of channels
 offset = ((STIM.offsets(1)-STIM.onsets(1))/(30));
@@ -281,23 +330,7 @@ sgtitle({'All trials triggered to stim onset',BRdatafile}, 'Interpreter', 'none'
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_snapshot',BRdatafile), '-jpg', '-transparent');
 
-%% Contrast conditions
-
-%% Vectors of logicals for conditions of interest
-contrast = unique(STIM.contrast);
-
-clear i
-for i = 1:length(contrast)
-STIM.Mconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == 0; 
-end
-
-clear i
-for i = 1:length(contrast)
-STIM.Bconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == contrast(i); 
-end
-
 %% Varying contrast, monocular stimulation (Contrasts)
-
 h2 = figure('position',[15,135,1200,500]);
 clear i 
 for i = 1:length(contrast)
@@ -320,42 +353,6 @@ sgtitle({'aMUA | Varying contrast to dominant eye',BRdatafile},'Interpreter','no
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_contrasts',BRdatafile), '-jpg', '-transparent');
-
-%% Z-score Normalization for aMUA
-
-zMUA = nan(size(STIM.aMUA,1),size(STIM.aMUA,2),size(STIM.aMUA,3));
-
-for t = 1:size(STIM.aMUA,3)
-    for c = 1:size(STIM.aMUA,2)
-        zMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(std(STIM.aMUA(25:75,c,t)));
-    end
-end
-
-avg.zMUA = mean(zMUA,3);
-bsl.zMUA = BMbasecorrect(avg.zMUA);
-
-
-%% Averaged trials by condition
-%  Now that I have my conditions as logicals in a structure and my aMUA in
-%  z-scores, time to pull out AVG'd z-scored aMUA for each condition
-
-clear m MzMUA BzMUA
-for m = 1:size(STIM.Mconditions,1)
-    MzMUA(m).contrast = mean(zMUA(:,:,STIM.Mconditions(m,:)),3); %#ok<SAGROW>
-    BzMUA(m).contrast = mean(zMUA(:,:,STIM.Bconditions(m,:)),3); %#ok<SAGROW>
-end
-
-%% collapsing across time for each condition
-clear i coll_mon
-for i=1:size(MzMUA,2)
-    coll_mon.contrast(i,:)  = mean(MzMUA(i).contrast(80:330,:),1);
-end
-
-clear i coll_bin
-for i=1:size(BzMUA,2)
-    coll_bin.contrast(i,:)  = mean(BzMUA(i).contrast(80:330,:),1);
-end
-
 
 %% Bar plot (Bar-contrasts)
 format bank; rcontrast = round(contrast,2,'significant');
@@ -416,38 +413,7 @@ cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_bar-contrasts',BRdatafile), '-jpg', '-transparent');
 
 
-%% Line plot -o
-% h5 = figure();
-% plot(contrast, MON(:,12),'color','k');
-% hold on
-% plot(contrast, BIN(:,12),'color','b');
-% ylim([-1 5.5]);
-% xlabel('contrast level')
-% ylabel('Normalized contrast response');
-% legend('Monocular stimulus','Binocular stimulus','Location','SouthEast');
-% title('Monocular vs binocular stimulation: contact 24');
-% hold off
-
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig 170421_I_line-contrasts_24 -jpg -transparent
-
-% C_DE = unique(STIM.contrast);
-% FC_NDE = unique(STIM.fixedc);
-% 
-% data_header = struct();
-% data_header.DE = [];
-% 
-% for temp_c = C_DE
-%     for temp_f = FC_NDE
-%         
-%          eval(['data_header.DE' ...
-%              '_NDE='...
-%              'STIM.contrast =' num2str(temp_c)...
-%              ' & STIM.fixedc ==' num2str(temp_f)])
-%     end
-% end
-
-%% experimental mesh
+%% 3D surface plot (MESH)
 format bank; rcontrast = round(contrast,2,'decimals');
 
 h7 = figure('Position', [49 111 1100 470]);
@@ -456,7 +422,7 @@ surf(contrast,channels,coll_bin.contrast');
 hold on
 colormap(gca, 'jet'); % this makes the red color the sinks and the blue color the sources (convention)
 cm2 = colorbar; 
-ax = set(gca,'tickdir','out'); 
+set(gca,'tickdir','out'); 
 climit = max(abs(get(gca,'CLim'))*1);
 %climit = 1;
 set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
@@ -470,7 +436,6 @@ xticklabels(0:0.5:1);
 zaxis = [-1 5.5];
 set(gca,'zlim',zaxis);
 hold off
-
 
 sp1 = subplot(1,3,1);
 surf(contrast,channels,coll_mon.contrast');
@@ -518,7 +483,7 @@ set(sp3, 'Position', [.68 .2 .20 .6])
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_surf',BRdatafile), '-jpg', '-transparent');
 
-%% experimental imagesc
+%% 2D Surface plot (IMAGESC)
 
 h8 = figure('Position', [49 111 1400 500]);
 
@@ -580,7 +545,7 @@ set(sp3, 'Position', [.70 .2 .20 .6])
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_imagesc',BRdatafile), '-jpg', '-transparent');
 
-%% experimental tightplot
+%% Experimental tightplot
 h9 = figure('Position', [280,58,380,582]);
 
 [ha, pos] = tight_subplot(24,1,[0.005 .03],[.1 .15],[.2 .2]); %channels, columns, [spacing], [top and bottom margin], [left and right margin]
