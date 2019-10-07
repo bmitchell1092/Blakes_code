@@ -14,14 +14,14 @@ if strcmp(getenv('USER'),'maierav')                                      %retrie
 else
     npmkdir  = '/users/bmitc/Documents/MATLAB/NPMK/';                    %neural processing matlab kit (NPMK)
     nbanalysisdir   = '/users/bmitc/Documents/MATLAB/nbanalysis/';       %directory with various tools for opening, loading, and processing 
-    datadir  = '/users/bmitc/Documents/MATLAB/data/';
+    datadir  = '/users/bmitc/Box Sync/DATA/';
 end
 
 addpath(genpath(npmkdir))
 addpath(genpath(nbanalysisdir))
 addpath(genpath(datadir))
 
-BRdatafile = '170421_I_cinteroc003'; 
+BRdatafile = '160202_I_cinteroc004'; 
 filename = [datadir BRdatafile];
 
 %% Define stimulus patterns and select from among them
@@ -237,6 +237,7 @@ avg.CSD = mean(STIM.CSD,3);
 
 %% Plotting all averaged, baseline corrected trials (SNAPSHOT)
 
+figname = ({BRdatafile});
 refwin = pre:post; % reference window for line plotting
 channels = 1:nct;  % how many channels (nct is a predefined variable with the exact number of channels
 offset = ((STIM.offsets(1)-STIM.onsets(1))/(30));
@@ -277,8 +278,8 @@ hold off
 
 sgtitle({'All trials triggered to stim onset',BRdatafile}, 'Interpreter', 'none');
 
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig 170421_I_snapshot -jpg -transparent
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('%s_snapshot',BRdatafile), '-jpg', '-transparent');
 
 %% Contrast conditions
 
@@ -295,7 +296,7 @@ for i = 1:length(contrast)
 STIM.Bconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == contrast(i); 
 end
 
-%% Varying contrast, monocular stimulation
+%% Varying contrast, monocular stimulation (Contrasts)
 
 h2 = figure('position',[15,135,1200,500]);
 clear i 
@@ -317,8 +318,8 @@ end
 
 sgtitle({'aMUA | Varying contrast to dominant eye',BRdatafile},'Interpreter','none');
 
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig 170421_I_contrasts -jpg -transparent
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('%s_contrasts',BRdatafile), '-jpg', '-transparent');
 
 %% Z-score Normalization for aMUA
 
@@ -344,7 +345,7 @@ for m = 1:size(STIM.Mconditions,1)
     BzMUA(m).contrast = mean(zMUA(:,:,STIM.Bconditions(m,:)),3); %#ok<SAGROW>
 end
 
-%% collapsing across time for each condition (NEW)
+%% collapsing across time for each condition
 clear i coll_mon
 for i=1:size(MzMUA,2)
     coll_mon.contrast(i,:)  = mean(MzMUA(i).contrast(80:330,:),1);
@@ -356,7 +357,7 @@ for i=1:size(BzMUA,2)
 end
 
 
-%% Bar plot (NEW)
+%% Bar plot (Bar-contrasts)
 format bank; rcontrast = round(contrast,2,'significant');
 
 h4 = figure('Position', [60 211 1100 300]);
@@ -411,8 +412,8 @@ hold off
 
 sgtitle({'Monocular vs Binocular response as a function of contrast',BRdatafile},'Interpreter','none');
 
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig 170421_I_bar-contrasts -jpg -transparent
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('%s_bar-contrasts',BRdatafile), '-jpg', '-transparent');
 
 
 %% Line plot -o
@@ -488,8 +489,8 @@ hold off
 
 sgtitle({'Monocular vs Binocular response as a function of contrast',BRdatafile},'Interpreter','none');
 
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig 170421_I_surf -jpg -transparent
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('%s_surf',BRdatafile), '-jpg', '-transparent');
 
 %% experimental imagesc
 
@@ -521,7 +522,7 @@ set(gca,'tickdir','out');
 set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
 title('2D Monocular contrast response');
 xlabel('\fontsize{12}contrast level')
-clrbar = colorbar; clrbar.Label.String = 'Z-score'; 
+clrbar = colorbar; clrbar.Label.String = 'z-score'; 
 set(clrbar.Label,'rotation',270,'fontsize',10,'VerticalAlignment','middle');
 ylabel('\fontsize{12}contacts indexed down from surface');
 xticklabels(rcontrast);
@@ -529,8 +530,8 @@ hold off
 
 sgtitle({'Monocular vs Binocular response as a function of contrast',BRdatafile},'Interpreter','none');
 
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig 170421_I_imagesc -jpg -transparent
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('%s_imagesc',BRdatafile), '-jpg', '-transparent');
 
 %% experimental tightplot
 h9 = figure('Position', [280,58,380,582]);
@@ -547,10 +548,9 @@ for c = 1:24
     hold off
     %xlim([-50 300]); %set the limitation of the x axis (sometimes the plot will plot more than you need, creating a gap)
     ylim([-0.5 5]);
-    %set(h,'position',get(h,'position').*[1 1 1 1]); %reduce the size of the individual plots
-    %line(xlim(), [0,0],'LineStyle','-.','LineWidth', 0.1, 'Color', 'k'); %create black horizontal line on the origin for each plot
-    %xline(0,'b');
+    for cc =1:5:24
     yticklabels(c);
+    end
     grid off
     
     if c < 24
@@ -578,5 +578,5 @@ set(ha(1:24), 'box', 'off');
 xlabel('\fontsize{12}contrast');
 % legend('Monocular stimulus','Binocular stimulus','Location','eastoutside');
 
-%  cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-%  export_fig 170421_I_tightplot -jpg -transparent
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('%s_tightplot',BRdatafile), '-jpg', '-transparent');
