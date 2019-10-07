@@ -450,14 +450,15 @@ export_fig(sprintf('%s_bar-contrasts',BRdatafile), '-jpg', '-transparent');
 %% experimental mesh
 format bank; rcontrast = round(contrast,2,'decimals');
 
-h7 = figure('Position', [49 111 1100 434]);
-subplot(1,2,2)
+h7 = figure('Position', [49 111 1100 470]);
+sp2 = subplot(1,3,2);
 surf(contrast,channels,coll_bin.contrast');
 hold on
-colormap(colormap('jet')); % this makes the red color the sinks and the blue color the sources (convention)
-colorbar; 
+colormap(gca, 'jet'); % this makes the red color the sinks and the blue color the sources (convention)
+cm2 = colorbar; 
 ax = set(gca,'tickdir','out'); 
 climit = max(abs(get(gca,'CLim'))*1);
+%climit = 1;
 set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
 title('Binocular response')
 xlabel('contrast level')
@@ -465,16 +466,17 @@ clrbar = colorbar; clrbar.Label.String = 'z-score';
 set(clrbar.Label,'rotation',270,'fontsize',10,'VerticalAlignment','middle');
 ylabel('contacts');
 xticklabels(0:0.5:1);
-zaxis = get(gca,'zlim');
+% zaxis = get(gca,'zlim');
+zaxis = [-1 5.5];
 set(gca,'zlim',zaxis);
 hold off
 
 
-subplot(1,2,1)
+sp1 = subplot(1,3,1);
 surf(contrast,channels,coll_mon.contrast');
 hold on
-colormap(colormap('jet')); % this makes the red color the sinks and the blue color the sources (convention)
-colorbar; 
+colormap(gca,'jet'); % this makes the red color the sinks and the blue color the sources (convention)
+cm1 = colorbar; 
 set(gca,'zlim',zaxis,'tickdir','out');
 %climit = max(abs(get(gca,'CLim'))*1);
 set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
@@ -487,22 +489,47 @@ ylabel('contacts');
 xticklabels(0:0.5:1);
 hold off
 
-sgtitle({'Monocular vs Binocular response as a function of contrast',BRdatafile},'Interpreter','none');
+sp3 = subplot(1,3,3);
+surf(contrast,channels,coll_bin.contrast'-coll_mon.contrast');
+hold on
+colormap(gca,'bone'); % this makes the red color the sinks and the blue color the sources (convention)
+cm3 = colorbar; 
+ax = set(gca,'tickdir','out'); 
+climit = max(abs(get(gca,'CLim'))*1);
+% climit = .4;
+set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
+set(gca,'zlim',zaxis,'tickdir','out');
+title('Monocular subtracted from binocular')
+xlabel('contrast level')
+clrbar = colorbar; clrbar.Label.String = 'z-score difference'; 
+set(clrbar.Label,'rotation',270,'fontsize',10,'VerticalAlignment','middle');
+ylabel('contacts');
+xticklabels(0:0.5:1);
+zaxis = get(gca,'zlim');
+set(gca,'zlim',zaxis);
+hold off
+
+sgtitle({'Monocular versus Binocular response as a function of contrast',BRdatafile},'Interpreter','none');
+
+set(sp1, 'Position', [.08 .2 .20 .6])
+set(sp2, 'Position', [.38 .2 .20 .6])
+set(sp3, 'Position', [.68 .2 .20 .6])
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_surf',BRdatafile), '-jpg', '-transparent');
 
 %% experimental imagesc
 
-h8 = figure('Position', [49 111 1100 434]);
+h8 = figure('Position', [49 111 1400 500]);
 
-subplot(1,2,2)
+sp2 = subplot(1,3,2);
 imagesc(1:length(contrast),channels,coll_bin.contrast');
 hold on
 colormap(colormap('jet')); % this makes the red color the sinks and the blue color the sources (convention)
 colorbar; 
 set(gca,'tickdir','out');  
 climit = max(abs(get(gca,'CLim'))*1);
+% climit = 1;
 set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
 title('2D Binocular contrast response');
 xlabel('\fontsize{12}contrast level')
@@ -512,7 +539,7 @@ ylabel('\fontsize{12}contacts indexed down from surface');
 xticklabels(rcontrast);
 hold off
 
-subplot(1,2,1)
+sp1 = subplot(1,3,1);
 imagesc(1:length(contrast),channels,coll_mon.contrast');
 hold on
 colormap(colormap('jet')); % this makes the red color the sinks and the blue color the sources (convention)
@@ -528,7 +555,27 @@ ylabel('\fontsize{12}contacts indexed down from surface');
 xticklabels(rcontrast);
 hold off
 
+sp3 = subplot(1,3,3);
+imagesc(1:length(contrast),channels,coll_bin.contrast'-coll_mon.contrast');
+hold on
+colormap(gca,'bone'); % this makes the red color the sinks and the blue color the sources (convention)
+colorbar; 
+set(gca,'tickdir','out');  
+climit = max(abs(get(gca,'CLim'))*1);
+set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
+title('Monocular subtracted from binocular');
+xlabel('\fontsize{12}contrast level')
+clrbar = colorbar; clrbar.Label.String = 'z-score difference'; 
+set(clrbar.Label,'rotation',270,'fontsize',10,'VerticalAlignment','middle');
+ylabel('\fontsize{12}contacts indexed down from surface');
+xticklabels(rcontrast);
+hold off
+
 sgtitle({'Monocular vs Binocular response as a function of contrast',BRdatafile},'Interpreter','none');
+
+set(sp1, 'Position', [.10 .2 .20 .6])
+set(sp2, 'Position', [.40 .2 .20 .6])
+set(sp3, 'Position', [.70 .2 .20 .6])
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_imagesc',BRdatafile), '-jpg', '-transparent');
