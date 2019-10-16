@@ -359,9 +359,9 @@ format bank; rcontrast = round(contrast,2,'significant');
 
 h4 = figure('Position', [60 211 1100 300]);
 subplot(1,4,1)
-y = [coll_mon.contrast(:,5) coll_bin.contrast(:,5)];
-b1 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
-hold on 
+bar(coll_bin.contrast(:,5),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+hold on
+bar(coll_mon.contrast(:,5),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
 ylim([-1 5.5]);
 xticklabels(rcontrast)
@@ -371,9 +371,9 @@ title('contact 5');
 hold off
 
 subplot(1,4,2)
-y = [coll_mon.contrast(:,10) coll_bin.contrast(:,10)];
-b2 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
+bar(coll_bin.contrast(:,10),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
+bar(coll_mon.contrast(:,10),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
 ylim([-1 5.5]);
 xticklabels(rcontrast)
@@ -383,22 +383,22 @@ title('contact 10');
 hold off
 
 subplot(1,4,3)
-y = [coll_mon.contrast(:,15) coll_bin.contrast(:,15)];
-b3 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
+bar(coll_bin.contrast(:,15),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
+bar(coll_mon.contrast(:,15),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
 ylim([-1 5.5]);
 xticklabels(rcontrast)
 xlabel('contrast level')
 ylabel('Z-normalized MUA')
 title('contact 15');
-%legend('Monocular stimulus','Binocular stimulus','Location','southoutside');
+legend('Binocular stimulation','Monocoular stimulation','Location','southoutside');
 hold off
 
 subplot(1,4,4)
-y = [coll_mon.contrast(:,20) coll_bin.contrast(:,20)];
-b4 = bar(y,'stacked','FaceColor','flat','EdgeColor','k','LineWidth',0.8);
+bar(coll_bin.contrast(:,20),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
+bar(coll_mon.contrast(:,20),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
 ylim([-1 5.5]);
 xticklabels(rcontrast)
@@ -558,7 +558,6 @@ for c = 1:24
     plot(coll_bin.contrast(:,c),'.-b','linewidth',0.5);
     %fill([contrast fliplr(contrast)], [coll_mon.contrast(:,c) fliplr(coll_bin.contrast(:,c))], 'b')
     hold off
-    %xlim([-50 300]); %set the limitation of the x axis (sometimes the plot will plot more than you need, creating a gap)
     ylim([-0.5 5]);
     for cc =1:5:24
     yticklabels(c);
