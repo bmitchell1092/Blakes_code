@@ -285,14 +285,33 @@ end
 
 clear i coll_mon
 for i=1:size(Mon_cMUA,2)
-    coll_mon.contrast(i,:)  = mean(Mon_cMUA(i).contrast(80:250,:),1);
+    coll_mon.full(i,:)  = mean(Mon_cMUA(i).contrast(80:offset,:),1);
 end
 
 clear i coll_bin
 for i=1:size(Bin_cMUA,2)
-    coll_bin.contrast(i,:)  = mean(Bin_cMUA(i).contrast(80:250,:),1);
+    coll_bin.full(i,:)  = mean(Bin_cMUA(i).contrast(80:offset,:),1);
 end
 
+clear i coll_mon.transient
+for i=1:size(Mon_cMUA,2)
+    coll_mon.transient(i,:)  = mean(Mon_cMUA(i).contrast(80:200,:),1);
+end
+
+clear i coll_bin.transient
+for i=1:size(Bin_cMUA,2)
+    coll_bin.transient(i,:)  = mean(Bin_cMUA(i).contrast(80:200,:),1);
+end
+
+clear i coll_mon.sustained
+for i=1:size(Mon_cMUA,2)
+    coll_mon.sustained(i,:)  = mean(Mon_cMUA(i).contrast(201:offset,:),1);
+end
+
+clear i coll_bin.sustained
+for i=1:size(Bin_cMUA,2)
+    coll_bin.sustained(i,:)  = mean(Bin_cMUA(i).contrast(201:offset,:),1);
+end
 %% Plotting
 
 %% Plotting all averaged, baseline corrected trials (SNAPSHOT)
@@ -317,7 +336,7 @@ end
 
 bAVG_iCSD = filterCSD(bsl.CSD')';
 
-h = subplot(1,4,4);
+subplot(1,4,4);
 imagesc(refwin,channels,bAVG_iCSD');
 hold on
 colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
@@ -341,7 +360,7 @@ export_fig(sprintf('%s_snapshot',BRdatafile), '-jpg', '-transparent');
 
 %% Varying contrast, monocular stimulation (Contrasts)
 
-h2 = figure('position',[15,135,1200,500]);
+figure('position',[15,135,1200,500]);
 subplot(1,length(contrast),numel(contrast))
 hold on
 contrastValue = max(contrast);
@@ -376,13 +395,13 @@ export_fig(sprintf('%s_contrasts',BRdatafile), '-jpg', '-transparent');
 %% Bar plot (Bar-contrasts)
 
 figure('Position', [60 211 1100 300]);
-selectchannels = [1 2 3 4 15 16 22];
+selectchannels = [3 6 9 12 15 18 21 24];
 clear c
 for c = 1:length(selectchannels)
     subplot(1,length(selectchannels),c)
-    bar(coll_bin.contrast(:,selectchannels(c)),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+    bar(coll_bin.full(:,selectchannels(c)),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
     hold on
-    bar(coll_mon.contrast(:,selectchannels(c)),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+    bar(coll_mon.full(:,selectchannels(c)),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
     set(gca,'box','off');
     ylim([-10 100]);
     xticklabels('')
@@ -396,10 +415,10 @@ hold off
 end
 
 sgtitle({'Monocular vs Binocular MUA by contact as a function of contrast'...
-    'Responses collapsed across 251ms-offset (sustained) stimulus duration',BRdatafile},'Interpreter','none');
+    'Responses collapsed across full stimulus duration',BRdatafile},'Interpreter','none');
 
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig(sprintf('%s_bar-contrasts-sustained',BRdatafile), '-jpg', '-transparent');
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('%s_bar-contrasts-sustained',BRdatafile), '-jpg', '-transparent');
 
 
 %% 3D surface plot (MESH)
@@ -476,7 +495,7 @@ set(sp3, 'Position', [.70 .2 .20 .6])
 h8 = figure('Position', [49 111 1400 500]);
 
 sp2 = subplot(1,3,2);
-imagesc(1:length(contrast),channels,coll_bin.contrast');
+imagesc(1:length(contrast),channels,coll_bin.full');
 hold on
 colormap(colormap('jet')); % this makes the red color the sinks and the blue color the sources (convention)
 colorbar; 
@@ -492,7 +511,7 @@ xticklabels(rcontrast);
 hold off
 
 sp1 = subplot(1,3,1);
-imagesc(1:length(contrast),channels,coll_mon.contrast');
+imagesc(1:length(contrast),channels,coll_mon.full');
 hold on
 colormap(colormap('jet')); % this makes the red color the sinks and the blue color the sources (convention)
 colorbar; 
@@ -507,7 +526,7 @@ xticklabels(rcontrast);
 hold off
 
 sp3 = subplot(1,3,3);
-imagesc(1:length(contrast),channels,coll_bin.contrast'-coll_mon.contrast');
+imagesc(1:length(contrast),channels,coll_bin.full'-coll_mon.full');
 hold on
 colormap(gca,'bone'); % this makes the red color the sinks and the blue color the sources (convention)
 colorbar; 
@@ -532,16 +551,16 @@ set(sp3, 'Position', [.70 .2 .20 .6])
 % export_fig(sprintf('%s_imagesc',BRdatafile), '-jpg', '-transparent');
 
 %% Tightplot
-h9 = figure('position',[185 150 887 450]);
+figure('position',[185 150 887 450]);
 
 [ha, pos] = tight_subplot(1,(numel(contrast)),[0.005 .03],[.10 .2],[.05 .05]); %channels, columns, [spacing], [bottom and top margin], [left and right margin]
 clear c
 for c = 1:length(contrast)
     
     axes(ha(c)); % ha is a variable that gets the axis of each subplot
-    plot(fliplr(coll_mon.contrast(c,:)),channels,'b','linewidth',.5);
+    plot(fliplr(coll_mon.full(c,:)),channels,'b','linewidth',.5);
     hold on
-    plot(fliplr(coll_bin.contrast(c,:)),channels,'.-r','linewidth',0.5);
+    plot(fliplr(coll_bin.full(c,:)),channels,'.-r','linewidth',0.5);
     xlim([-10 80])
     yticklabels({;'','20','15','10','5'});
     grid off
@@ -570,7 +589,7 @@ export_fig(sprintf('%s_tightplot',BRdatafile), '-jpg', '-transparent');
 figure('position',[185 150 887 450]);
 
 subplot(1,3,2)
-plot(fliplr(coll_bin.contrast(:,:)),channels);
+plot(fliplr(coll_bin.full(:,:)),channels);
 hold on
 ylabel('contacts indexed down from surface');
 set(gca,'box','off');
@@ -583,7 +602,7 @@ hold off
 
 subplot(1,3,1)
 hold on
-plot(fliplr(coll_mon.contrast(:,:)),channels);
+plot(fliplr(coll_mon.full(:,:)),channels);
 ylabel('contacts indexed down from surface');
 yticklabels({;'','20','15','10','5'});
 xlim([-5 climit*1.2]);
@@ -592,7 +611,7 @@ title('Monocular');
 hold off
 
 subplot(1,3,3)
-plot(fliplr(coll_bin.contrast(:,:))-fliplr(coll_mon.contrast(:,:)),channels);
+plot(fliplr(coll_bin.full(:,:))-fliplr(coll_mon.full(:,:)),channels);
 hold on 
 ylabel('contacts indexed down from surface');
 yticklabels({;'','20','15','10','5'});
@@ -608,52 +627,27 @@ cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_lineplots',BRdatafile), '-jpg', '-transparent');
 
 %% Percent difference from monocular to binocular stimulation
-figure;
-flippedbin = fliplr(coll_bin.contrast(6,:));
-flippedmon = fliplr(coll_mon.contrast(6,:));
-barh((flippedbin(:)-flippedmon(:)),'k');
-hold on
-ylabel('contacts indexed down from surface');
-set(gca,'box','off');
-%xlim([-0.5 1.5])
-xlabel('Percent difference from monocular MUA response');
-yticklabels({;'','20','15','10','5'});
-title('Binocular MUA response increase from monocular response | Full contrast (1)');
-hold off
 
-figure;
-barh((flippedbin(:)-flippedmon(:))./(flippedmon(:)),'k');
-hold on
-ylabel('contacts indexed down from surface');
-set(gca,'box','off');
-%xlim([-0.5 1.5])
-xlabel('Fold change from monocular MUA response');
-yticklabels({;'','20','15','10','5'});
-title('Binocular MUA response relative to monocular response | Full contrast (1)');
-hold off
-
-%% Binned Layers (Datalog informed)
+%% Binning contacts into V1 layers
 
 supra = 1:10; % contact range for supragranular layer
 gran = 11:16; % contact range for granular layer
 infra = 17:24; % contact range for infragranular layer
 
-supra_mon = mean(coll_mon.contrast(:,supra),2);
-gran_mon = mean(coll_mon.contrast(:,gran),2);
-infra_mon = mean(coll_mon.contrast(:,infra),2);
+layers_MON.full = [mean(coll_mon.full(:,supra),2),mean(coll_mon.full(:,gran),2),mean(coll_mon.full(:,infra),2)];
+layers_MON.transient = [mean(coll_mon.transient(:,supra),2),mean(coll_mon.transient(:,gran),2),mean(coll_mon.transient(:,infra),2)];
+layers_MON.sustained = [mean(coll_mon.sustained(:,supra),2),mean(coll_mon.sustained(:,gran),2),mean(coll_mon.sustained(:,infra),2)];
 
-supra_bin = mean(coll_bin.contrast(:,supra),2);
-gran_bin = mean(coll_bin.contrast(:,gran),2);
-infra_bin = mean(coll_bin.contrast(:,infra),2);
+layers_BIN.full = [mean(coll_bin.full(:,supra),2),mean(coll_bin.full(:,gran),2), mean(coll_bin.full(:,infra),2)];
+layers_BIN.transient = [mean(coll_bin.transient(:,supra),2),mean(coll_bin.transient(:,gran),2),mean(coll_bin.transient(:,infra),2)];
+layers_BIN.sustained = [mean(coll_bin.sustained(:,supra),2),mean(coll_bin.sustained(:,gran),2),mean(coll_bin.sustained(:,infra),2)];
 
-layers_MON = [supra_mon,gran_mon, infra_mon];
-layers_BIN = [supra_bin,gran_bin, infra_bin];
-
+%% Bar Graphs of Binned Layers (Layers Informed)
 figure('Position', [60 211 1100 300]);
 subplot(1,3,1)
-bar(layers_BIN(:,1),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+bar(layers_BIN.full(:,1),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
-bar(layers_MON(:,1),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+bar(layers_MON.full(:,1),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
 ylim([-10 100]);
 xticklabels(rcontrast)
@@ -663,9 +657,9 @@ title('Supragranular');
 hold off
 
 subplot(1,3,2)
-bar(layers_BIN(:,2),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+bar(layers_BIN.full(:,2),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
-bar(layers_MON(:,2),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+bar(layers_MON.full(:,2),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
 ylim([-10 100]);
 xticklabels(rcontrast)
@@ -675,9 +669,9 @@ title('Granular');
 hold off
 
 subplot(1,3,3)
-bar(layers_BIN(:,3),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+bar(layers_BIN.full(:,3),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
-bar(layers_MON(:,3),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+bar(layers_MON.full(:,3),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
 ylim([-10 100]);
 xticklabels(rcontrast)
@@ -691,59 +685,100 @@ sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_layers-informed',BRdatafile), '-jpg', '-transparent');
 
+%% Binned by layer, relative change from Monocular to Binocular
+
+figure('Position', [60 211 1100 300]);
+subplot(1,3,1)
+bar(((layers_BIN.full(:,1)-layers_MON.full(:,1))./(layers_MON.full(:,1))),0.8,'FaceColor',[0.20, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
+hold on
+set(gca,'box','off');
+ylim([-0.2 4]);
+xticklabels(rcontrast)
+xlabel('contrast level')
+ylabel('fold change from monocular MUA');
+title('Supragranular');
+hold off
+
+subplot(1,3,2)
+bar(((layers_BIN.full(:,2)-layers_MON.full(:,2))./(layers_MON.full(:,2))),0.8,'FaceColor',[0.20, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
+hold on
+set(gca,'box','off');
+ylim([-0.2 4]);
+xticklabels(rcontrast)
+xlabel('contrast level')
+ylabel('fold change from monocular MUA');
+title('Granular');
+hold off
+
+subplot(1,3,3)
+bar(((layers_BIN.full(:,3)-layers_MON.full(:,3))./(layers_MON.full(:,3))),0.8,'FaceColor',[0.20, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
+hold on
+set(gca,'box','off');
+ylim([-0.2 4]);
+xticklabels(rcontrast)
+xlabel('contrast level')
+ylabel('fold change from monocular MUA');
+title('Infragranular');
+hold off
+
+%sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','none');
+
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('%s_layers-foldchange',BRdatafile), '-jpg', '-transparent');
+
 %% Semilog 
 
 figure;
 format bank;
 subplot(2,3,1)
-semilogx(layers_MON(:,1));
+semilogx(layers_MON.full(:,1));
 hold on
-semilogx(layers_BIN(:,1));
+semilogx(layers_BIN.full(:,1));
 xticklabels('');
 ylim([-10 100]);
 title('Supragranular');
 hold off
 
 subplot(2,3,2)
-semilogx(layers_MON(:,2));
+semilogx(layers_MON.full(:,2));
 hold on
-semilogx(layers_BIN(:,2));
+semilogx(layers_BIN.full(:,2));
 xticklabels('');
 ylim([-10 100]);
 title('Granular');
 hold off
 
 subplot(2,3,3)
-semilogx(layers_MON(:,3));
+semilogx(layers_MON.full(:,3));
 hold on
-semilogx(layers_BIN(:,3));
+semilogx(layers_BIN.full(:,3));
 ylim([-10 100]);
 xticklabels('');
 title('Infragranular');
 hold off
 
 subplot(2,3,4)
-semilogy(contrast,layers_MON(:,1));
+semilogy(contrast,layers_MON.full(:,1));
 hold on
-semilogy(contrast,layers_BIN(:,1));
+semilogy(contrast,layers_BIN.full(:,1));
 ylim([0 100]);
 xlabel('contrast');
 xticklabels(0:0.5:1);
 hold off
 
 subplot(2,3,5)
-semilogy(contrast,abs(layers_MON(:,2)));
+semilogy(contrast,abs(layers_MON.full(:,2)));
 hold on
-semilogy(contrast,abs(layers_BIN(:,2)));
+semilogy(contrast,abs(layers_BIN.full(:,2)));
 ylim([0 100]);
 xticklabels(0:0.5:1);
 xlabel('contrast');
 hold off
 
 subplot(2,3,6)
-semilogy(contrast,layers_MON(:,3));
+semilogy(contrast,layers_MON.full(:,3));
 hold on
-semilogy(contrast,layers_BIN(:,3));
+semilogy(contrast,layers_BIN.full(:,3));
 ylim([0 100]);
 xticklabels(0:0.5:1);
 xlabel('contrast');
@@ -755,3 +790,22 @@ sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_semilog',BRdatafile), '-jpg', '-transparent');
+
+%% Binned percent difference and change
+trans_v_sust = [((layers_BIN.transient(6,:)-layers_MON.transient(6,:))./(layers_MON.transient(6,:)));((layers_BIN.sustained(6,:)-layers_MON.sustained(6,:))./(layers_MON.sustained(6,:)))]';
+figure;
+b = bar([1 2 3],trans_v_sust,'FaceColor','Flat');
+b(1).FaceColor = [.85 .85 .85]; b(1).EdgeColor = 'k';
+b(2).FaceColor = [.2 .2 .2]; b(2).EdgeColor = 'k';
+
+hold on
+ylabel('fold change');
+set(gca,'box','off');
+xticklabels({'Supragranular','Granular','Infragranular'});
+title({'From Monocular to Binocular:'...
+    'Relative fold change in MUA at full contrast'});
+legend('Transient','Sustained','Location','northeast');
+hold off
+
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('%s_transVsust',BRdatafile), '-jpg', '-transparent');
