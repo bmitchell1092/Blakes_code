@@ -14,15 +14,15 @@ if strcmp(getenv('USER'),'maierav')                                      %retrie
 else
     npmkdir  = '/users/bmitc/Documents/MATLAB/NPMK/';                    %neural processing matlab kit (NPMK)
     nbanalysisdir   = '/users/bmitc/Documents/MATLAB/nbanalysis/';       %directory with various tools for opening, loading, and processing 
-    %datadir  = '/users/bmitc/Box Sync/DATA/';
-    datadir = 'users/bmitc/Documents/MATLAB/data/';
+    datadir  = '/users/bmitc/Box Sync/DATA/';
+    %datadir = 'users/bmitc/Documents/MATLAB/data/';
 end
 
 addpath(genpath(npmkdir))
 addpath(genpath(nbanalysisdir))
 addpath(genpath(datadir))
 
-BRdatafile = '170324_I_cinteroc002'; 
+BRdatafile = '160523_E_mcosinteroc002'; 
 filename = [datadir BRdatafile];
 
 %% Define stimulus patterns and select from among them
@@ -187,6 +187,8 @@ for e = 1:length(neural)
     
 end
 
+sortdirection = 'ascending'; 
+
 % sort electrode contacts in ascending order:
 idx    = nan(length(NeuralLabels),1); 
 for ch = 1:length(NeuralLabels)
@@ -230,7 +232,7 @@ STIM.CSD  = trigData(CSD,STIM.onsetsdown,-pre,post);
 STIM.aMUA = trigData(MUA,STIM.onsetsdown,-pre,post); 
 
 %% Averaging across trials & baseline correct
-
+clear avg
 avg.LFP = mean(STIM.LFP,3);
 avg.aMUA = mean(STIM.aMUA,3);
 avg.CSD = mean(STIM.CSD,3);
@@ -242,24 +244,29 @@ avg.CSD = mean(STIM.CSD,3);
 %% Vectors of logicals for conditions of interest
 contrast = unique(STIM.contrast);
 
-clear i
+clear i STIM.Mconditions
 for i = 1:length(contrast)
 STIM.Mconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == 0; 
 end
+
+clear i STIM.NDEconditions
 
 for i = 1:length(contrast)
 STIM.NDEconditions(i,:) = STIM.contrast == 0 & STIM.fixedc == contrast(i); 
 end
 
-clear i
+clear i STIM.Bconditions
 for i = 1:length(contrast)
 STIM.Bconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == contrast(i); 
 end
 
 %% Data conversion for aMUA (Z score or percent change)
 
+clear cMUA
+
 cMUA = nan(size(STIM.aMUA,1),size(STIM.aMUA,2),size(STIM.aMUA,3));
 
+clear t c
 for t = 1:size(STIM.aMUA,3)
     for c = 1:size(STIM.aMUA,2)
 %       cMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(std(STIM.aMUA(25:75,c,t))); %z score
@@ -281,7 +288,7 @@ for m = 1:size(STIM.Mconditions,1)
     Bin_cMUA(m).contrast = mean(cMUA(:,:,STIM.Bconditions(m,:)),3); %#ok<SAGROW>
 end
 
-clear m 
+clear m Mon_CSD BIN_CSD
 for m = 1:size(STIM.Mconditions,1)
     Mon_CSD(m).contrast = mean(STIM.CSD(:,:,STIM.Mconditions(m,:)),3); %#ok<SAGROW>
     Bin_CSD(m).contrast = mean(STIM.CSD(:,:,STIM.Bconditions(m,:)),3); %#ok<SAGROW>
@@ -299,22 +306,22 @@ for i=1:size(Bin_cMUA,2)
     coll_bin.full(i,:)  = mean(Bin_cMUA(i).contrast(80:offset,:),1);
 end
 
-clear i coll_mon.transient
+clear i
 for i=1:size(Mon_cMUA,2)
     coll_mon.transient(i,:)  = mean(Mon_cMUA(i).contrast(80:200,:),1);
 end
 
-clear i coll_bin.transient
+clear i
 for i=1:size(Bin_cMUA,2)
     coll_bin.transient(i,:)  = mean(Bin_cMUA(i).contrast(80:200,:),1);
 end
 
-clear i coll_mon.sustained
+clear i
 for i=1:size(Mon_cMUA,2)
     coll_mon.sustained(i,:)  = mean(Mon_cMUA(i).contrast(201:offset,:),1);
 end
 
-clear i coll_bin.sustained
+clear i 
 for i=1:size(Bin_cMUA,2)
     coll_bin.sustained(i,:)  = mean(Bin_cMUA(i).contrast(201:offset,:),1);
 end
@@ -361,8 +368,8 @@ hold off
 sgtitle({'All trials triggered to stim onset',BRdatafile}, 'Interpreter', 'none');
 set(h,'position',[0.7483,0.1253,0.1055,0.6826]);
 
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig(sprintf('%s_snapshot',BRdatafile), '-jpg', '-transparent');
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('%s_snapshot',BRdatafile), '-jpg', '-transparent');
 
 %% Varying contrast, monocular stimulation (Contrasts)
 
@@ -402,6 +409,7 @@ export_fig(sprintf('%s_contrasts-DE',BRdatafile), '-jpg', '-transparent');
 
 figure('Position', [60 211 1100 300]);
 selectchannels = [3 6 9 12 15 18 21 24];
+%selectchannels = [8 9 10 11 12 13 14 15 16 17];
 clear c
 for c = 1:length(selectchannels)
     subplot(1,length(selectchannels),c)
@@ -424,7 +432,7 @@ sgtitle({'Monocular vs Binocular MUA by contact as a function of contrast'...
     'Responses collapsed across full stimulus duration',BRdatafile},'Interpreter','none');
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_bar-contrasts',BRdatafile), '-jpg', '-transparent');
+export_fig(sprintf('%s_bar-contrasts-full',BRdatafile), '-jpg', '-transparent');
 
 
 %% 3D surface plot (MESH)
@@ -637,9 +645,12 @@ export_fig(sprintf('%s_lineplots',BRdatafile), '-jpg', '-transparent');
 
 %% Binning contacts into V1 layers
 
-supra = 1:9; % contact range for supragranular layer
-gran = 12:17; % contact range for granular layer
-infra = 18:24; % contact range for infragranular layer
+% prompt('Ready for layer binning: Would you like to proceed? (Y/N)?');
+% prompt = input(prompt,'s');
+
+supra = 10:13; % contact range for supragranular layer
+gran = 14:19; % contact range for granular layer
+infra = 20:24; % contact range for infragranular layer
 
 layers_MON.full = [mean(coll_mon.full(:,supra),2),mean(coll_mon.full(:,gran),2),mean(coll_mon.full(:,infra),2)];
 layers_MON.transient = [mean(coll_mon.transient(:,supra),2),mean(coll_mon.transient(:,gran),2),mean(coll_mon.transient(:,infra),2)];
@@ -690,7 +701,7 @@ hold off
 sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','none');
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_layers-BSinformed',BRdatafile), '-jpg', '-transparent');
+export_fig(sprintf('%s_layers-BSinformed_transient',BRdatafile), '-jpg', '-transparent');
 
 %% Binned by layer, % difference from Monocular to Binocular
 
@@ -731,17 +742,17 @@ hold off
 %sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','none');
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_layers-percentdiff_2',BRdatafile), '-jpg', '-transparent');
+export_fig(sprintf('%s_layers-percentdiff_2_transient',BRdatafile), '-jpg', '-transparent');
 
 %% Binned layers Monocular to Binocular (Fold change)
 
 figure('Position',[59,211,1000,260]);
 subplot(1,3,1)
-bar(((layers_BIN.full(:,1)-layers_MON.full(:,1))./(layers_MON.full(:,1))),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
+bar(((layers_BIN.transient(:,1)-layers_MON.full(:,1))./(layers_MON.full(:,1))),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
 hold on
-plot(((layers_BIN.full(:,1)-layers_MON.full(:,1))./(layers_MON.full(:,1))),'-o','LineWidth',0.8);
+plot(((layers_BIN.transient(:,1)-layers_MON.full(:,1))./(layers_MON.full(:,1))),'-o','LineWidth',0.8);
 set(gca,'box','off');
-ylim([-1 3]);
+ylim([-2 7]);
 xticklabels(rcontrast)
 xlabel('contrast level')
 ylabel('fold change from monocular');
@@ -753,7 +764,7 @@ bar(((layers_BIN.full(:,2)-layers_MON.full(:,2))./(layers_MON.full(:,2))),0.8,'F
 hold on
 plot(((layers_BIN.full(:,2)-layers_MON.full(:,2))./(layers_MON.full(:,2))),'-o','LineWidth',0.8);
 set(gca,'box','off');
-ylim([-1 3]);
+ylim([-2 7]);
 xticklabels(rcontrast)
 xlabel('contrast level')
 ylabel('fold change from monocular');
@@ -765,7 +776,7 @@ bar(((layers_BIN.full(:,3)-layers_MON.full(:,3))./(layers_MON.full(:,3))),0.8,'F
 hold on
 plot(((layers_BIN.full(:,3)-layers_MON.full(:,3))./(layers_MON.full(:,3))),'-o','LineWidth',0.8);
 set(gca,'box','off');
-ylim([-1 3]);
+ylim([-2 7]);
 xticklabels(rcontrast)
 xlabel('contrast level')
 ylabel('fold change from monocular');
@@ -775,7 +786,7 @@ hold off
 %sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','none');
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_layers-foldchange_2',BRdatafile), '-jpg', '-transparent');
+export_fig(sprintf('%s_layers-foldchange_2-transient',BRdatafile), '-jpg', '-transparent');
 
 %% Fold change (Transient vs sustained, Semilogx)
 
@@ -791,7 +802,7 @@ hold on
 semilogx(contrast,sust(:,1),'k');
 semilogx(contrast,full(:,1),'-o');
 xticklabels('');
-ylim([-2 5]);
+ylim([-2 2]);
 xlabel('contrast level')
 ylabel('Fold change');
 title('Supragranular');
@@ -805,7 +816,7 @@ semilogx(contrast,sust(:,2),'k');
 semilogx(contrast,full(:,2),'-o');
 xticklabels('');
 xlabel('contrast level')
-ylim([-2 5]);
+ylim([-2 2]);
 title('Granular');
 hold off
 
@@ -816,10 +827,11 @@ hold on
 semilogx(contrast,sust(:,3),'k');
 semilogx(contrast,full(:,3),'-o');
 xticklabels('');
-ylim([-2 5]);
+ylim([-2 2]);
 xlabel('contrast level')
 title('Infragranular');
 hold off
+%legend('transient','sustained','full','Location','southoutside','orientation','vertical');
 
 sgtitle({'Fold change from monocular to binocular: transient vs sustained'...
    'Binocular summation-informed granular layer'});
@@ -827,8 +839,8 @@ sgtitle({'Fold change from monocular to binocular: transient vs sustained'...
 % sgtitle({'Fold change from monocular to binocular: transient vs sustained'...
 %    'CSD-informed granular layer'});
 
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_layers-transvsust_2',BRdatafile), '-jpg', '-transparent');
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig(sprintf('%s_layers-transvsust_2',BRdatafile), '-jpg', '-transparent');
 
 %% Semilogx and Semilogy
 figure;
@@ -906,7 +918,7 @@ b(2).FaceColor = [.2 .2 .2]; b(2).EdgeColor = 'k';
 
 hold on
 set(gca,'box','off');
-ylim([-3 10])
+ylim([-1.5 3])
 xticklabels({'II/III','IV','V/VI'});
 hold off
 
