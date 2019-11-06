@@ -1,9 +1,10 @@
 %% BMcinteroc
-% script to select an input file, load in .nev,
-% .ns2, and ns6, pull out stim onset and tie those timepoints to the
-% raw neural data. Each stim onset with animal fixation is a trial. Generate LFP, aMUA, and CSD --triggered to a reference
-% window. Average across trials and plot each response by
-% contact channel for the duration of the stimulus. 
+% script to: select an input file, load in .nev,
+% pull out stim onset, load in .ns2 and .ns6 and sync event codes to the
+% raw neural data. Each stim onset with animal fixation for the duration of presentation is a trial. 
+% Generate LFP, aMUA, and CSD --triggered to a reference
+% window. Average across trials and baseline corrected when necessary. 
+% Several plotting options for data visualization at the end
 clear
 cd('C:\Users\bmitc\')
 %% Establish directories and set path
@@ -15,7 +16,7 @@ if strcmp(getenv('USER'),'maierav')                                      %retrie
 else
     npmkdir  = '/users/bmitc/Documents/MATLAB/NPMK/';                    %neural processing matlab kit (NPMK)
     nbanalysisdir   = '/users/bmitc/Documents/MATLAB/nbanalysis/';       %directory with various tools for opening, loading, and processing 
-    datadir  = '/users/bmitc/Box Sync/DATA/';
+    datadir  = '/users/bmitc/Box Sync/DATA/';                            %this is my Vanderbilt Box sync 
     %datadir = 'users/bmitc/Documents/MATLAB/data/';
 end
 
@@ -26,24 +27,24 @@ addpath(genpath(datadir))
 BRdatafile = '160523_E_mcosinteroc002'; 
 filename = [datadir BRdatafile];
 
-%% Define layers by contact
+%% Define layers by contact (informed by datalogs)
 supra = 10:13; % contact range for supragranular layer
 gran = 14:19; % contact range for granular layer
 infra = 20:24; % contact range for infragranular layer
 
-%% Define stimulus patterns and select from among them
+%% Define stimulus patterns
 
 patterns   = {'rforidrft','rfsfdrft','posdisparitydrft','disparitydrft','cinterocdrft','coneinterocdrft','conedrft', ...
                 'colorflicker','bwflicker','rfori','rfsize','cinteroc','color','rfsf','mcosinteroc','dotmapping'}; 
 for p = 1:length(patterns) 
     
-    pattern = patterns{p};    %pattern is individual elements of the above array
+    pattern = patterns{p};    %pattern is individual elements of the above array 'patterns'
     
     if any(strfind(BRdatafile,pattern))         %if BRdatafile contains any string the same as pattern
-        startlog = strfind(BRdatafile,pattern); %create a variable to store the number of those patches
+        startlog = strfind(BRdatafile,pattern); 
         if ~isequal(BRdatafile(startlog:end-3),pattern), continue
         else
-        match = patterns{p};
+        match = patterns{p};        % finding which file type the BRdatafile is
         end
     end
     
@@ -51,14 +52,14 @@ end
 
 if isequal(match,'dotmapping')
     ext = '.gDotsXY_di';
-elseif isequal(BRdatafile, '190415_B_cinteroc002') || isequal(BRdatafile, '190321_B_cinteroc001')...
+elseif isequal(BRdatafile, '190415_B_cinteroc002') || isequal(BRdatafile, '190321_B_cinteroc001')...  % specific files that are named cinteric but actually cinterocDRFT
         || isequal(BRdatafile,'161003_E_cinteroc002') || isequal(BRdatafile,'190210_B_cinteroc001')
-    ext = ['.g' upper(match) 'DRFTGrating_di'];
+    ext = ['.g' upper(match) 'DRFTGrating_di']; % defining an extension for DRFT files
 else
-    ext = ['.g' upper(match) 'Grating_di'];
+    ext = ['.g' upper(match) 'Grating_di']; % defining an extension for grating files
 end
 
-if contains(ext,'DRFT') 
+if contains(ext,'DRFT')                     
       grating     = readgDRFTGrating([filename ext]); % from nbanalysis 
 elseif contains(ext,'Dots')
       grating     = readgDotsXY([filename ext]);
@@ -69,7 +70,7 @@ end
 %% Load event times and codes
 
 NEV             = openNEV([filename '.nev'],'noread','overwrite');
-EventCodes      = NEV.Data.SerialDigitalIO.UnparsedData - 128;          %we don't know why we subtract 128
+EventCodes      = NEV.Data.SerialDigitalIO.UnparsedData - 128;          
 EventSamples    = NEV.Data.SerialDigitalIO.TimeStamp;                   %Events in samples 
 EventTimes      = floor(NEV.Data.SerialDigitalIO.TimeStampSec.*1000);   %floor rounds to nearest integer and then convert event to ms 
 [pEvC, pEvT]    = parsEventCodesML(EventCodes,EventSamples);            %sorts codes, samps or times into trials
@@ -84,7 +85,7 @@ STIM.onsetsdown = floor(STIM.onsets./30);
 clear ext
 ext = 'ns2';
 
-%first retrieve sort direction and bank info
+%retrieve sort direction and bank info
 NS_Header    = openNSx(strcat(filename,'.',ext),'noread');
 banks        = unique({NS_Header.ElectrodesInfo.ConnectorBank}); banks(ismember(banks,'E')) = []; % bank E is BNC cable inputs
 
@@ -201,15 +202,18 @@ for ch = 1:length(NeuralLabels)
     
 end
 
+% not 100% positive that this is working as intended. Though the datalog
+% for layers does appear to match the resulting CSD (later on in this
+% script). 
 switch sortdirection
     case 'ascending'
         MUA = MUA(:,idx);
         LFP = LFP(:,idx);
         sortedLabels = NeuralLabels(idx); 
     case 'descending'
-        MUA = MUA(:,flipud(idx));
-        LFP = LFP(:,flipud(idx));
-        sortedLabels = NeuralLabels(flipud(idx)); 
+        MUA = MUA(:,flipud(idx)); %kacie used fliplr here but it wasn't flipping properly 
+        LFP = LFP(:,flipud(idx)); % same as above
+        sortedLabels = NeuralLabels(flipud(idx)); % same as above
 end
 %% calculate CSD 
 % calculate CSD before triggering to trials OR on the trial data BUT not on
@@ -239,35 +243,21 @@ avg.LFP = mean(STIM.LFP,3);
 avg.aMUA = mean(STIM.aMUA,3);
 avg.CSD = mean(STIM.CSD,3);
 
-[bsl.LFP] = BMbasecorrect(avg.LFP);
-[bsl.aMUA] = BMbasecorrect(avg.aMUA);
+% These aren't currently used because I'm about to convert to percent
+% change from baseline (next section). 
+[bsl.LFP] = BMbasecorrect(avg.LFP); 
+[bsl.aMUA] = BMbasecorrect(avg.aMUA); 
 [bsl.CSD] = BMbasecorrect(avg.CSD);
 
-%% Vectors of logicals for conditions of interest
-contrast = unique(STIM.contrast);
+%% Data conversion 
+% Converting the aMUA raw neural response to either percent change from
+% baseline or z score (baseline as Xbar). 
 
-clear i STIM.Mconditions
-for i = 1:length(contrast)
-STIM.Mconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == 0; 
-end
-
-clear i STIM.NDEconditions
-
-for i = 1:length(contrast)
-STIM.NDEconditions(i,:) = STIM.contrast == 0 & STIM.fixedc == contrast(i); 
-end
-
-clear i STIM.Bconditions
-for i = 1:length(contrast)
-STIM.Bconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == contrast(i); 
-end
-
-%% Data conversion for aMUA (Z score or percent change)
-
+% pre-allocate
 clear cMUA
-
 cMUA = nan(size(STIM.aMUA,1),size(STIM.aMUA,2),size(STIM.aMUA,3));
 
+% aMUA conversion to either z-score or percent change
 clear t c
 for t = 1:size(STIM.aMUA,3)
     for c = 1:size(STIM.aMUA,2)
@@ -276,26 +266,56 @@ for t = 1:size(STIM.aMUA,3)
     end
 end
 
+% probably won't use these
 avg.cMUA = mean(cMUA,3);
 bsl.cMUA = BMbasecorrect(avg.cMUA);
 
+%% Defining conditions of interest
+% This is to create structures for the different conditions (including
+% contrast levels and eye to which stimulus was shown. 
+
+contrast = unique(STIM.contrast);  % variable that contains all contrast levels
+
+clear i STIM.Mconditions
+for i = 1:length(contrast)  % monocular (DE) contrast conditions
+STIM.Mconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == 0; 
+end
+
+clear i STIM.NDEconditions
+
+for i = 1:length(contrast)  % monocular (NDE) contrast conditions
+STIM.NDEconditions(i,:) = STIM.contrast == 0 & STIM.fixedc == contrast(i); 
+end
+
+clear i STIM.Bconditions
+for i = 1:length(contrast)  % binocular contrast conditions
+STIM.Bconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == contrast(i); 
+end
+
+
+
 %% Averaged trials by condition
+% The above matrices were just logicals. Now time to take my full cMUA
+% trials and use those logicals to trigger to and average by conditions of
+% interest.
 
 clear m Mon_cMUA NDE_cMUA Bin_cMUA 
 for m = 1:size(STIM.Mconditions,1)
-    Mon_cMUA(m).contrast = mean(cMUA(:,:,STIM.Mconditions(m,:)),3); %#ok<SAGROW>
-    NDE_cMUA(m).contrast = mean(cMUA(:,:,STIM.NDEconditions(m,:)),3);
-    Bin_cMUA(m).contrast = mean(cMUA(:,:,STIM.Bconditions(m,:)),3); %#ok<SAGROW>
+    Mon_cMUA(m).contrast = mean(cMUA(:,:,STIM.Mconditions(m,:)),3); 
+    NDE_cMUA(m).contrast = mean(cMUA(:,:,STIM.NDEconditions(m,:)),3); %currently unused
+    Bin_cMUA(m).contrast = mean(cMUA(:,:,STIM.Bconditions(m,:)),3); 
 end
 
 clear m Mon_CSD BIN_CSD
 for m = 1:size(STIM.Mconditions,1)
-    Mon_CSD(m).contrast = mean(STIM.CSD(:,:,STIM.Mconditions(m,:)),3); %#ok<SAGROW>
-    NDE_CSD(m).contrast = mean(STIM.CSD(:,:,STIM.NDEconditions(m,:)),3);
-    Bin_CSD(m).contrast = mean(STIM.CSD(:,:,STIM.Bconditions(m,:)),3); %#ok<SAGROW>
+    Mon_CSD(m).contrast = mean(STIM.CSD(:,:,STIM.Mconditions(m,:)),3); 
+    NDE_CSD(m).contrast = mean(STIM.CSD(:,:,STIM.NDEconditions(m,:)),3); %currently unused
+    Bin_CSD(m).contrast = mean(STIM.CSD(:,:,STIM.Bconditions(m,:)),3); 
 end
 
 %% collapsing across time for each condition
+% In order to get a single number to represent the contrast response for each contact, I can collapse
+% across time. The following collapses across different lengths of time:
 
 clear i coll_mon
 for i=1:size(Mon_cMUA,2)
@@ -332,7 +352,8 @@ for i=1:size(Bin_cMUA,2)
     coll_bin.sustained(i,:)  = mean(Bin_cMUA(i).contrast(201:offset,:),1);
 end
 
-%% Plotting: all averaged, baseline corrected trials (SNAPSHOT)
+%% Plotting: (SNAPSHOT)
+% All averaged, baseline corrected trials (LFP, aMUA, CSD, iCSD)
 
 refwin = pre:post; % reference window for line plotting
 channels = 1:nct;  % how many channels (nct is a predefined variable with the exact number of channels
@@ -342,7 +363,7 @@ clear i
 avg_fields = fieldnames(avg);
 for i = 1:length(avg_fields)
 subplot(1,4,i)
-f_ShadedLinePlotbyDepthMod((avg.(avg_fields{i})),0:(1/(numel(channels))):1,refwin, channels, 1);
+f_ShadedLinePlotbyDepthMod((avg.(avg_fields{i})),0:(1/(numel(channels))):1,refwin, channels, 1); % this function baseline corrects and scales
 hold on
 plot([0 0], ylim,'k')
 plot([offset offset], ylim,'k','linestyle','-.','linewidth',0.5)
@@ -376,7 +397,8 @@ set(h,'position',[0.7483,0.1253,0.1055,0.6826]);
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_snapshot',BRdatafile), '-jpg', '-transparent');
 
-%% Varying contrast, monocular stimulation (Contrasts)
+%% Dominant Eye Contrast responses (Contrasts)
+% Dominant eye response to stimulus with different contrast levels
 
 figure('position',[15,135,1200,500]);
 subplot(1,length(contrast),numel(contrast))
@@ -410,7 +432,9 @@ sgtitle({'aMUA | Varying contrast to dominant eye',BRdatafile},'Interpreter','no
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_contrasts-DE',BRdatafile), '-jpg', '-transparent');
 
-%% Bar plot (Bar-contrasts)
+%% Bar plots of Monocular vs Binocular Stimulation (Bar-contrasts)
+% Several bar plots for select contacts showing monocular (blue bar) and
+% binocular stimulation (red bar).
 
 figure('Position', [60 211 1100 300]);
 selectchannels = [1:3:length(channels)];
@@ -440,7 +464,7 @@ cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_bar-contrasts',BRdatafile), '-jpg', '-transparent');
 
 
-%% Tightplot
+%% All contacts, collapsed across time, sectioned by contrast level (Tightplot)
 figure('position',[185 150 887 450]);
 
 [ha, pos] = tight_subplot(1,(numel(contrast)),[0.005 .03],[.10 .2],[.05 .05]); %channels, columns, [spacing], [bottom and top margin], [left and right margin]
@@ -473,8 +497,9 @@ set(ha(1:numel(contrast)), 'box', 'off');
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_tightplot',BRdatafile), '-jpg', '-transparent');
 
-%% Summary line plots (contrast lines)
-
+%% Collapsed contrast responses for monocular and binocular stim (contrast lines)
+% Designed to show Monocular vs binocular contrast responses alongside CSD
+% for layer reference. 
 figure('position',[185 150 887 450]);
 
 h = subplot(1,4,1);
@@ -543,7 +568,9 @@ sgtitle({'Monocular vs binocular aMUA averaged over stimulus duration',BRdatafil
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_lineplots',BRdatafile), '-jpg', '-transparent');
 
-%% Binning contacts into V1 layers
+%% Binning contacts into V1 layers (informed by datalogs)
+% Seperated into full stim duration, transient response, and sustained
+% response
 
 layers_MON.full = [mean(coll_mon.full(:,supra),2),mean(coll_mon.full(:,gran),2),mean(coll_mon.full(:,infra),2)];
 layers_MON.transient = [mean(coll_mon.transient(:,supra),2),mean(coll_mon.transient(:,gran),2),mean(coll_mon.transient(:,infra),2)];
@@ -555,6 +582,7 @@ layers_BIN.sustained = [mean(coll_bin.sustained(:,supra),2),mean(coll_bin.sustai
 
 
 %% Contrast lines across time (Timeplots)
+% and corresponding binocular minus monocular subtractions 
 
 figure('position',[213.6666666666667,149.6666666666667,724.6666666666666,425.3333333333334]);
 subplot(2,3,1)
@@ -637,6 +665,8 @@ cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_timeplots',BRdatafile), '-jpg', '-transparent');
 
 %% Bar Graphs of Binned Layers (Binned Layers)
+% Using bar graphs to represent monocular vs binocular response layer
+% differences and fold change from one to the other
 
 rcontrast = round(contrast,2,'significant');
 
@@ -800,8 +830,6 @@ sgtitle('Fold change from monocular to binocular: transient vs sustained');
 
 % cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 % export_fig(sprintf('%s_layers-transvsust_2',BRdatafile), '-jpg', '-transparent');
-
-%% Semilogx and Semilogy
 
 
 %% Saving Workspace to D drive
