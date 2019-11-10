@@ -7,6 +7,7 @@
 % Several plotting options for data visualization at the end
 clear
 cd('C:\Users\bmitc\')
+
 %% Establish directories and set path
 
 if strcmp(getenv('USER'),'maierav')                                      %retrieves environment variable 'USER' 
@@ -24,13 +25,12 @@ addpath(genpath(npmkdir))
 addpath(genpath(nbanalysisdir))
 addpath(genpath(datadir))
 
-BRdatafile = '160523_E_mcosinteroc002'; 
+BRdatafile = '160505_E_mcosinteroc002'; 
 filename = [datadir BRdatafile];
 
 %% Define layers by contact (informed by datalogs)
-supra = 10:13; % contact range for supragranular layer
-gran = 14:19; % contact range for granular layer
-infra = 20:24; % contact range for infragranular layer
+
+[supra,gran,infra] = layerLog(BRdatafile);
 
 %% Define stimulus patterns
 
@@ -80,6 +80,9 @@ EventTimes      = floor(NEV.Data.SerialDigitalIO.TimeStampSec.*1000);   %floor r
 
 STIM            = sortStimandTimeData(grating,pEvC,pEvT,'stim'); 
 STIM.onsetsdown = floor(STIM.onsets./30);
+STIM.laminae.supra = supra;
+STIM.laminae.gran = gran;
+STIM.laminae.infra = infra;
 
 %% Load LFP with NS2 file
 clear ext
@@ -239,15 +242,15 @@ STIM.aMUA = trigData(MUA,STIM.onsetsdown,-pre,post);
 
 %% Averaging across trials & baseline correct
 clear avg
-avg.LFP = mean(STIM.LFP,3);
-avg.aMUA = mean(STIM.aMUA,3);
-avg.CSD = mean(STIM.CSD,3);
+STIM.avg.LFP = mean(STIM.LFP,3);
+STIM.avg.aMUA = mean(STIM.aMUA,3);
+STIM.avg.CSD = mean(STIM.CSD,3);
 
 % These aren't currently used because I'm about to convert to percent
 % change from baseline (next section). 
-[bsl.LFP] = BMbasecorrect(avg.LFP); 
-[bsl.aMUA] = BMbasecorrect(avg.aMUA); 
-[bsl.CSD] = BMbasecorrect(avg.CSD);
+[STIM.bsl.LFP] = BMbasecorrect(STIM.avg.LFP); 
+[STIM.bsl.aMUA] = BMbasecorrect(STIM.avg.aMUA); 
+[STIM.bsl.CSD] = BMbasecorrect(STIM.avg.CSD);
 
 %% Data conversion 
 % Converting the aMUA raw neural response to either percent change from
@@ -255,115 +258,137 @@ avg.CSD = mean(STIM.CSD,3);
 
 % pre-allocate
 clear cMUA
-cMUA = nan(size(STIM.aMUA,1),size(STIM.aMUA,2),size(STIM.aMUA,3));
-
+STIM.cMUA = nan(size(STIM.aMUA,1),size(STIM.aMUA,2),size(STIM.aMUA,3));
+STIM.zMUA = nan(size(STIM.aMUA,1),size(STIM.aMUA,2),size(STIM.aMUA,3));
 % aMUA conversion to either z-score or percent change
 clear t c
 for t = 1:size(STIM.aMUA,3)
     for c = 1:size(STIM.aMUA,2)
-%       cMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(std(STIM.aMUA(25:75,c,t))); %z score
-        cMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(mean(STIM.aMUA(25:75,c,t)))*100; %percent change
+        STIM.zMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(std(STIM.aMUA(25:75,c,t))); %z score
+        STIM.cMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(mean(STIM.aMUA(25:75,c,t)))*100; %percent change
     end
 end
-
-% probably won't use these
-avg.cMUA = mean(cMUA,3);
-bsl.cMUA = BMbasecorrect(avg.cMUA);
 
 %% Defining conditions of interest
 % This is to create structures for the different conditions (including
 % contrast levels and eye to which stimulus was shown. 
 
-contrast = unique(STIM.contrast);  % variable that contains all contrast levels
+STIM.levels = unique(STIM.contrast);  % variable that contains all contrast levels
 
-clear i STIM.Mconditions
-for i = 1:length(contrast)  % monocular (DE) contrast conditions
-STIM.Mconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == 0; 
+clear i STIM.DEconditions
+for i = 1:length(STIM.levels)  % monocular (DE) contrast conditions
+STIM.DEconditions(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == 0; 
 end
 
 clear i STIM.NDEconditions
 
-for i = 1:length(contrast)  % monocular (NDE) contrast conditions
-STIM.NDEconditions(i,:) = STIM.contrast == 0 & STIM.fixedc == contrast(i); 
+for i = 1:length(STIM.levels)  % monocular (NDE) contrast conditions
+STIM.NDEconditions(i,:) = STIM.contrast == 0 & STIM.fixedc == STIM.levels(i); 
 end
 
-clear i STIM.Bconditions
-for i = 1:length(contrast)  % binocular contrast conditions
-STIM.Bconditions(i,:) = STIM.contrast == contrast(i) & STIM.fixedc == contrast(i); 
+clear i STIM.BINconditions
+for i = 1:length(STIM.levels)  % binocular contrast conditions
+STIM.BINconditions(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == STIM.levels(i); 
 end
-
-
 
 %% Averaged trials by condition
 % The above matrices were just logicals. Now time to take my full cMUA
 % trials and use those logicals to trigger to and average by conditions of
 % interest.
 
-clear m Mon_cMUA NDE_cMUA Bin_cMUA 
-for m = 1:size(STIM.Mconditions,1)
-    Mon_cMUA(m).contrast = mean(cMUA(:,:,STIM.Mconditions(m,:)),3); 
-    NDE_cMUA(m).contrast = mean(cMUA(:,:,STIM.NDEconditions(m,:)),3); %currently unused
-    Bin_cMUA(m).contrast = mean(cMUA(:,:,STIM.Bconditions(m,:)),3); 
+% aMUA by condition
+clear m STIM.DE.cMUA NDE_cMUA STIM.BIN.cMUA 
+for m = 1:size(STIM.DEconditions,1)
+    STIM.DE.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.DEconditions(m,:)),3); 
+    STIM.NDE.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.NDEconditions(m,:)),3); %currently unused
+    STIM.BIN.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.BINconditions(m,:)),3); 
 end
 
+% CSD by condition
 clear m Mon_CSD BIN_CSD
-for m = 1:size(STIM.Mconditions,1)
-    Mon_CSD(m).contrast = mean(STIM.CSD(:,:,STIM.Mconditions(m,:)),3); 
-    NDE_CSD(m).contrast = mean(STIM.CSD(:,:,STIM.NDEconditions(m,:)),3); %currently unused
-    Bin_CSD(m).contrast = mean(STIM.CSD(:,:,STIM.Bconditions(m,:)),3); 
+for m = 1:size(STIM.DEconditions,1)
+    STIM.DE.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.DEconditions(m,:)),3); 
+    STIM.NDE.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.NDEconditions(m,:)),3); %currently unused
+    STIM.BIN.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.BINconditions(m,:)),3); 
 end
 
 %% collapsing across time for each condition
 % In order to get a single number to represent the contrast response for each contact, I can collapse
 % across time. The following collapses across different lengths of time:
 
-clear i coll_mon
-for i=1:size(Mon_cMUA,2)
-    coll_mon.full(i,:)  = mean(Mon_cMUA(i).contrast(80:offset,:),1);
-end
-
-clear i coll_bin
-for i=1:size(Bin_cMUA,2)
-    coll_bin.full(i,:)  = mean(Bin_cMUA(i).contrast(80:offset,:),1);
-end
-
-clear i coll_nde
-for i=1:size(NDE_cMUA,2)
-    coll_bin.full(i,:)  = mean(Bin_cMUA(i).contrast(80:offset,:),1);
-end
-
-clear i
-for i=1:size(Mon_cMUA,2)
-    coll_mon.transient(i,:)  = mean(Mon_cMUA(i).contrast(80:200,:),1);
-end
-
-clear i
-for i=1:size(Bin_cMUA,2)
-    coll_bin.transient(i,:)  = mean(Bin_cMUA(i).contrast(80:200,:),1);
-end
-
-clear i
-for i=1:size(Mon_cMUA,2)
-    coll_mon.sustained(i,:)  = mean(Mon_cMUA(i).contrast(201:offset,:),1);
+clear i 
+for i=1:size(STIM.DE.cMUA,2)
+    STIM.DE.coll.full(i,:)  = mean(STIM.DE.cMUA(i).contrast(80:offset,:),1);
 end
 
 clear i 
-for i=1:size(Bin_cMUA,2)
-    coll_bin.sustained(i,:)  = mean(Bin_cMUA(i).contrast(201:offset,:),1);
+for i=1:size(STIM.NDE.cMUA,2)
+    STIM.NDE.coll.full(i,:)  = mean(STIM.NDE.cMUA(i).contrast(80:offset,:),1);
 end
+
+clear i 
+for i=1:size(STIM.BIN.cMUA,2)
+    STIM.BIN.coll.full(i,:)  = mean(STIM.BIN.cMUA(i).contrast(80:offset,:),1);
+end
+
+clear i
+for i=1:size(STIM.DE.cMUA,2)
+    STIM.DE.coll.transient(i,:)  = mean(STIM.DE.cMUA(i).contrast(80:150,:),1);
+end
+
+clear i
+for i=1:size(STIM.NDE.cMUA,2)
+    STIM.NDE.coll.transient(i,:)  = mean(STIM.NDE.cMUA(i).contrast(80:150,:),1);
+end
+
+clear i
+for i=1:size(STIM.BIN.cMUA,2)
+    STIM.BIN.coll.transient(i,:)  = mean(STIM.BIN.cMUA(i).contrast(80:150,:),1);
+end
+
+clear i
+for i=1:size(STIM.DE.cMUA,2)
+    STIM.DE.coll.sustained(i,:)  = mean(STIM.DE.cMUA(i).contrast(151:offset,:),1);
+end
+
+clear i
+for i=1:size(STIM.NDE.cMUA,2)
+    STIM.NDE.coll.sustained(i,:)  = mean(STIM.NDE.cMUA(i).contrast(151:offset,:),1);
+end
+
+clear i 
+for i=1:size(STIM.BIN.cMUA,2)
+    STIM.BIN.coll.sustained(i,:)  = mean(STIM.BIN.cMUA(i).contrast(151:offset,:),1);
+end
+
+%% Binning contacts into V1 layers (informed by datalogs)
+% Seperated into full stim duration, transient response, and sustained
+% response
+
+STIM.DE.layers.full = [mean(STIM.DE.coll.full(:,supra),2),mean(STIM.DE.coll.full(:,gran),2),mean(STIM.DE.coll.full(:,infra),2)];
+STIM.DE.layers.transient = [mean(STIM.DE.coll.transient(:,supra),2),mean(STIM.DE.coll.transient(:,gran),2),mean(STIM.DE.coll.transient(:,infra),2)];
+STIM.DE.layers.sustained = [mean(STIM.DE.coll.sustained(:,supra),2),mean(STIM.DE.coll.sustained(:,gran),2),mean(STIM.DE.coll.sustained(:,infra),2)];
+
+STIM.NDE.layers.full = [mean(STIM.NDE.coll.full(:,supra),2),mean(STIM.NDE.coll.full(:,gran),2),mean(STIM.NDE.coll.full(:,infra),2)];
+STIM.NDE.layers.transient = [mean(STIM.NDE.coll.transient(:,supra),2),mean(STIM.NDE.coll.transient(:,gran),2),mean(STIM.NDE.coll.transient(:,infra),2)];
+STIM.NDE.layers.sustained = [mean(STIM.NDE.coll.sustained(:,supra),2),mean(STIM.NDE.coll.sustained(:,gran),2),mean(STIM.NDE.coll.sustained(:,infra),2)];
+
+STIM.BIN.layers.full = [mean(STIM.BIN.coll.full(:,supra),2),mean(STIM.BIN.coll.full(:,gran),2), mean(STIM.BIN.coll.full(:,infra),2)];
+STIM.BIN.layers.transient = [mean(STIM.BIN.coll.transient(:,supra),2),mean(STIM.BIN.coll.transient(:,gran),2),mean(STIM.BIN.coll.transient(:,infra),2)];
+STIM.BIN.layers.sustained = [mean(STIM.BIN.coll.sustained(:,supra),2),mean(STIM.BIN.coll.sustained(:,gran),2),mean(STIM.BIN.coll.sustained(:,infra),2)];
 
 %% Plotting: (SNAPSHOT)
 % All averaged, baseline corrected trials (LFP, aMUA, CSD, iCSD)
 
-refwin = pre:post; % reference window for line plotting
-channels = 1:nct;  % how many channels (nct is a predefined variable with the exact number of channels
+STIM.refwin = pre:post; % reference window for line plotting
+STIM.channels = 1:nct;  % how many channels (nct is a predefined variable with the exact number of channels
 
 h1 = figure('position',[15,135,1200,500]);
 clear i
-avg_fields = fieldnames(avg);
+avg_fields = fieldnames(STIM.avg);
 for i = 1:length(avg_fields)
 subplot(1,4,i)
-f_ShadedLinePlotbyDepthMod((avg.(avg_fields{i})),0:(1/(numel(channels))):1,refwin, channels, 1); % this function baseline corrects and scales
+f_ShadedLinePlotbyDepthMod((STIM.avg.(avg_fields{i})),0:(1/(numel(STIM.channels))):1,STIM.refwin, STIM.channels, 1); % this function baseline corrects and scales
 hold on
 plot([0 0], ylim,'k')
 plot([offset offset], ylim,'k','linestyle','-.','linewidth',0.5)
@@ -373,10 +398,10 @@ ylabel('contacts indexed down from surface')
 hold off
 end
 
-bAVG_iCSD = filterCSD(bsl.CSD')';
+bAVG_iCSD = filterCSD(STIM.bsl.CSD')';
 
 h = subplot(1,4,4);
-imagesc(refwin,channels,bAVG_iCSD');
+imagesc(STIM.refwin,STIM.channels,bAVG_iCSD');
 hold on
 colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
 colorbar; v = vline(0); set(v,'color','k','linestyle','-','linewidth',1);
@@ -394,33 +419,33 @@ hold off
 sgtitle({'All trials triggered to stim onset',BRdatafile}, 'Interpreter', 'none');
 set(h,'position',[0.7483,0.1253,0.1055,0.6826]);
 
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_snapshot',BRdatafile), '-jpg', '-transparent');
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig(sprintf('%s_snapshot',BRdatafile), '-jpg', '-transparent');
 
 %% Dominant Eye Contrast responses (Contrasts)
 % Dominant eye response to stimulus with different contrast levels
 
 figure('position',[15,135,1200,500]);
-subplot(1,length(contrast),numel(contrast))
+subplot(1,length(STIM.levels),numel(STIM.levels))
 hold on
-contrastValue = max(contrast);
+contrastValue = max(STIM.levels);
 global scalingfactor
-f_ShadedLinePlotbyDepth(mean(STIM.aMUA(:,:,STIM.Mconditions(numel(contrast),:)),3),0:(1/(numel(channels))):1,refwin,channels,1,1);
+f_ShadedLinePlotbyDepth(mean(STIM.aMUA(:,:,STIM.DEconditions(numel(STIM.levels),:)),3),0:(1/(numel(STIM.channels))):1,STIM.refwin,STIM.channels,1,1);
 title('1 contrast in DE');
 xlabel('time (ms)');
 hold off
 
 clear i 
-for i = 1:length(contrast)-1
-    subplot(1,length(contrast),i);
-    f_ShadedLinePlotbyDepth_BAM(mean(STIM.aMUA(:,:,STIM.Mconditions(i,:)),3),0:(1/(numel(channels))):1,refwin,channels,1,1,false,scalingfactor);
+for i = 1:length(STIM.levels)-1
+    subplot(1,length(STIM.levels),i);
+    f_ShadedLinePlotbyDepth_BAM(mean(STIM.aMUA(:,:,STIM.DEconditions(i,:)),3),0:(1/(numel(STIM.channels))):1,STIM.refwin,STIM.channels,1,1,false,scalingfactor);
    
 plot([0 0], ylim,'k')
 plot([offset offset], ylim,'k')
 if i == 1
-    title({contrast(i),' contrast in both eyes'});
+    title({STIM.levels(i),' STIM.levels in both eyes'});
 else 
-    title({contrast(i),' contrast in DE'});
+    title({STIM.levels(i),' contrast in DE'});
 end
 xlabel('time (ms)')
 ylabel('contacts indexed down from surface')
@@ -429,22 +454,22 @@ end
 
 sgtitle({'aMUA | Varying contrast to dominant eye',BRdatafile},'Interpreter','none');
 
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_contrasts-DE',BRdatafile), '-jpg', '-transparent');
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig(sprintf('%s_contrasts-DE',BRdatafile), '-jpg', '-transparent');
 
 %% Bar plots of Monocular vs Binocular Stimulation (Bar-contrasts)
 % Several bar plots for select contacts showing monocular (blue bar) and
 % binocular stimulation (red bar).
 
 figure('Position', [60 211 1100 300]);
-selectchannels = [1:3:length(channels)];
-%selectchannels = [15 16 17 18];
+selectchannels = [supra(1):3:infra(end)];
+%selectchannels = [19 20 21 22 23 24 25 26];
 clear c
 for c = 1:length(selectchannels)
     subplot(1,length(selectchannels),c)
-    bar(coll_bin.full(:,selectchannels(c)),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+    bar(STIM.BIN.coll.transient(:,selectchannels(c)),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
     hold on
-    bar(coll_mon.full(:,selectchannels(c)),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+    bar(STIM.DE.coll.transient(:,selectchannels(c)),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
     set(gca,'box','off');
     ylim([-10 100]);
     xticklabels('')
@@ -458,42 +483,67 @@ hold off
 end
 
 sgtitle({'Monocular vs Binocular contrast response function (MUA)'...
-    'Responses collapsed across stimulus duration',BRdatafile},'Interpreter','none');
+    'Responses collapsed across initial 100ms',BRdatafile},'Interpreter','none');
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_bar-contrasts',BRdatafile), '-jpg', '-transparent');
-
+export_fig(sprintf('%s_bar-contrasts-transient',BRdatafile), '-jpg', '-transparent');
 
 %% All contacts, collapsed across time, sectioned by contrast level (Tightplot)
-figure('position',[185 150 887 450]);
+figure('position',[185,41.666666666666664,645.3333333333333,599.3333333333333]);
 
-[ha, pos] = tight_subplot(1,(numel(contrast)),[0.005 .03],[.10 .2],[.05 .05]); %channels, columns, [spacing], [bottom and top margin], [left and right margin]
+[ha, pos] = tight_subplot(2,3,[0.005 .03],[.10 .2],[.05 .05]); %channels, columns, [spacing], [bottom and top margin], [left and right margin]
 clear c
-for c = 1:length(contrast)
+for c = 1:3
     
     axes(ha(c)); % ha is a variable that gets the axis of each subplot
-    plot(fliplr(coll_mon.full(c,:)),channels,'b','linewidth',.5);
+    plot(fliplr(STIM.DE.coll.transient(c+1,:)),STIM.channels,'b','linewidth',.5);
     hold on
-    plot(fliplr(coll_bin.full(c,:)),channels,'.-r','linewidth',0.5);
+    plot(fliplr(STIM.BIN.coll.transient(c+1,:)),STIM.channels,'.-r','linewidth',0.5);
+    hline(STIM.channels(end)-gran(end),'-.')
     xlim([-10 80])
-    yticklabels({flipud(1:length(channels))});
-    grid off
+    yticks('')
+    yticklabels(fliplr(1:nct))
+    ylim([1 nct])
+    %yticklabels({flipud(1:length(STIM.channels))});
+    grid on
     hold off
-    
-    xlabel('Percent change');
+    xticklabels('');
+    %xlabel('Percent change');
     
     if c == 1
-        ylabel('contacts indexed down from surface');
-        title({contrast(c),' contrast'});
+        ylabel('Transient');
+        title({STIM.levels(c+1),'contrast'});
     else 
-        title({contrast(c),' contrast'});
+        title({STIM.levels(c+1),'contrast'});
     end   
    
 end
-sgtitle({'Monocular vs binocular MUA as a function of contrast level',BRdatafile},'Interpreter', 'none')
-set(ha(1:numel(contrast)), 'box', 'off');
-% legend('Monocular stimulus','Binocular stimulus','Location','eastoutside');
 
+clear c
+for c = 4:6
+    
+    axes(ha(c)); % ha is a variable that gets the axis of each subplot
+    plot(fliplr(STIM.DE.coll.sustained(c-2,:)),STIM.channels,'b','linewidth',.5);
+    hold on
+    plot(fliplr(STIM.BIN.coll.sustained(c-2,:)),STIM.channels,'.-r','linewidth',0.5);
+    hline(STIM.channels(end)-gran(end),'-.')
+    xlim([-10 80])
+    yticks('')
+    yticklabels(fliplr(1:nct))
+    ylim([1 nct])
+    %yticklabels({flipud(1:length(STIM.channels))});
+    grid on
+    hold off
+    
+    xlabel('Percent change'); 
+    if c == 4
+        ylabel('Sustained');
+    else 
+   
+    end
+end
+
+sgtitle({'Contrast response profiles | Ocularity x contrast x time',BRdatafile},'interpreter','none')
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_tightplot',BRdatafile), '-jpg', '-transparent');
 
@@ -503,7 +553,7 @@ export_fig(sprintf('%s_tightplot',BRdatafile), '-jpg', '-transparent');
 figure('position',[185 150 887 450]);
 
 h = subplot(1,4,1);
-imagesc(refwin,channels,bAVG_iCSD');
+imagesc(STIM.refwin,STIM.channels,bAVG_iCSD');
 hold on
 colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
 colorbar; v = vline(0); set(v,'color','k','linestyle','-','linewidth',1);
@@ -520,7 +570,7 @@ set(h,'position',[0.065388951521984,0.097526988745119,0.145749605022835,0.722586
 hold off
 
 subplot(1,4,3)
-plot(fliplr(coll_bin.full(:,:)),channels);
+plot(fliplr(STIM.BIN.coll.transient(:,:)),STIM.channels);
 hold on
 %ylabel('contacts indexed down from surface');
 set(gca,'box','off');
@@ -537,7 +587,7 @@ hold off
 
 subplot(1,4,2)
 hold on
-plot(fliplr(coll_mon.full(:,:)),channels);
+plot(fliplr(STIM.DE.coll.transient(:,:)),STIM.channels);
 set(gca,'box','off');
 grid on
 xlim([-5 climit*1.2]);
@@ -549,36 +599,32 @@ grid on
 title('Monocular');
 hold off
 
+STIM.calc.contacts.subtractionDE.full = STIM.BIN.coll.full(:,:)-STIM.DE.coll.full(:,:);
+STIM.calc.contacts.subtractionDE.transient = STIM.BIN.coll.transient(:,:)-STIM.DE.coll.transient(:,:);
+STIM.calc.contacts.subtractionDE.sustained = STIM.BIN.coll.sustained(:,:)-STIM.DE.coll.sustained(:,:);
+
+STIM.calc.contacts.subtractionNDE.full = STIM.BIN.coll.full(:,:)-STIM.NDE.coll.full(:,:);
+STIM.calc.contacts.subtractionNDE.transient = STIM.BIN.coll.transient(:,:)-STIM.NDE.coll.transient(:,:);
+STIM.calc.contacts.subtractionNDE.sustained = STIM.BIN.coll.sustained(:,:)-STIM.NDE.coll.sustained(:,:);
+
 subplot(1,4,4)
-plot(fliplr(coll_bin.full(:,:))-fliplr(coll_mon.full(:,:)),channels);
+plot(fliplr(STIM.calc.contacts.subtractionDE.transient),STIM.channels);
 hold on 
 grid on
-xlim([-5 20]);
+xlim([-5 25]);
 set(gca,'box','off');
 yticks(1:nct)
 yticklabels(fliplr(1:nct))
 ylim([1 nct])
 xlabel('Percent change');
 title('Subtraction (bin - mon)');
-%legend(num2str(contrast),'Location','southoutside','orientation','horizontal');
+%legend(num2str(STIM.levels),'Location','southoutside','orientation','horizontal');
 hold off
 
 sgtitle({'Monocular vs binocular aMUA averaged over stimulus duration',BRdatafile},'Interpreter','none');
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_lineplots',BRdatafile), '-jpg', '-transparent');
-
-%% Binning contacts into V1 layers (informed by datalogs)
-% Seperated into full stim duration, transient response, and sustained
-% response
-
-layers_MON.full = [mean(coll_mon.full(:,supra),2),mean(coll_mon.full(:,gran),2),mean(coll_mon.full(:,infra),2)];
-layers_MON.transient = [mean(coll_mon.transient(:,supra),2),mean(coll_mon.transient(:,gran),2),mean(coll_mon.transient(:,infra),2)];
-layers_MON.sustained = [mean(coll_mon.sustained(:,supra),2),mean(coll_mon.sustained(:,gran),2),mean(coll_mon.sustained(:,infra),2)];
-
-layers_BIN.full = [mean(coll_bin.full(:,supra),2),mean(coll_bin.full(:,gran),2), mean(coll_bin.full(:,infra),2)];
-layers_BIN.transient = [mean(coll_bin.transient(:,supra),2),mean(coll_bin.transient(:,gran),2),mean(coll_bin.transient(:,infra),2)];
-layers_BIN.sustained = [mean(coll_bin.sustained(:,supra),2),mean(coll_bin.sustained(:,gran),2),mean(coll_bin.sustained(:,infra),2)];
+export_fig(sprintf('%s_lineplots_transient',BRdatafile), '-jpg', '-transparent');
 
 
 %% Contrast lines across time (Timeplots)
@@ -587,10 +633,10 @@ layers_BIN.sustained = [mean(coll_bin.sustained(:,supra),2),mean(coll_bin.sustai
 figure('position',[213.6666666666667,149.6666666666667,724.6666666666666,425.3333333333334]);
 subplot(2,3,1)
 clear c
-for c = 1:length(contrast)
-plot(refwin,mean(Mon_cMUA(c).contrast(:,supra),2),'color','b')
+for c = 1:length(STIM.levels)
+plot(STIM.refwin,mean(STIM.DE.cMUA(c).contrast(:,supra),2),'color','b')
 hold on
-plot(refwin,mean(Bin_cMUA(c).contrast(:,supra),2),'color','r')
+plot(STIM.refwin,mean(STIM.BIN.cMUA(c).contrast(:,supra),2),'color','r')
 %ylimit = max(abs(get(gcf,'ylim')));
 ylimit = 100;
 set(gca,'ylim',[-10 ylimit],'Box','off','TickDir','out')
@@ -602,10 +648,10 @@ title('Supragranular');
 
 subplot(2,3,2)
 clear c
-for c = 1:length(contrast)
-plot(refwin,mean(Mon_cMUA(c).contrast(:,gran),2),'color','b')
+for c = 1:length(STIM.levels)
+plot(STIM.refwin,mean(STIM.DE.cMUA(c).contrast(:,gran),2),'color','b')
 hold on
-plot(refwin,mean(Bin_cMUA(c).contrast(:,gran),2),'color','r')
+plot(STIM.refwin,mean(STIM.BIN.cMUA(c).contrast(:,gran),2),'color','r')
 set(gca,'ylim',[-10 ylimit],'Box','off','TickDir','out')
 end
 
@@ -614,10 +660,10 @@ title('Granular');
 
 subplot(2,3,3)
 clear c
-for c = 1:length(contrast)
-plot(refwin,mean(Mon_cMUA(c).contrast(:,infra),2),'color','b')
+for c = 1:length(STIM.levels)
+plot(STIM.refwin,mean(STIM.DE.cMUA(c).contrast(:,infra),2),'color','b')
 hold on
-plot(refwin,mean(Bin_cMUA(c).contrast(:,infra),2),'color','r')
+plot(STIM.refwin,mean(STIM.BIN.cMUA(c).contrast(:,infra),2),'color','r')
 set(gca,'ylim',[-10 ylimit],'Box','off','TickDir','out')
 end
 
@@ -626,11 +672,11 @@ title('Infragranular');
 
 subplot(2,3,4)
 clear c
-for c = 1:length(contrast)
-plot(refwin,smooth(mean(Bin_cMUA(c).contrast(:,supra),2)-(mean(Mon_cMUA(c).contrast(:,supra),2)),.1))
+for c = 1:length(STIM.levels)
+plot(STIM.refwin,smooth(mean(STIM.BIN.cMUA(c).contrast(:,supra),2)-(mean(STIM.DE.cMUA(c).contrast(:,supra),2)),.1))
 hold on
 ylimit = max(abs(get(gcf,'ylim')));
-set(gca,'ylim',[-10 ylimit/3],'Box','off','TickDir','out')
+set(gca,'ylim',[-10 ylimit/5],'Box','off','TickDir','out')
 end
 ylabel({'Percent difference'...
     '(bin - mon)'});
@@ -638,22 +684,22 @@ xlabel('time (ms)');
 
 subplot(2,3,5)
 clear c
-for c = 1:length(contrast)
-plot(refwin,smooth(mean(Bin_cMUA(c).contrast(:,gran),2)-(mean(Mon_cMUA(c).contrast(:,gran),2)),.1))
+for c = 1:length(STIM.levels)
+plot(STIM.refwin,smooth(mean(STIM.BIN.cMUA(c).contrast(:,gran),2)-(mean(STIM.DE.cMUA(c).contrast(:,gran),2)),.1))
 hold on
 ylimit = max(abs(get(gcf,'ylim')));
-set(gca,'ylim',[-10 ylimit/3],'Box','off','TickDir','out')
+set(gca,'ylim',[-10 ylimit/5],'Box','off','TickDir','out')
 end
 
 xlabel('time (ms)');
 
 subplot(2,3,6)
 clear c
-for c = 1:length(contrast)
-plot(refwin,smooth(mean(Bin_cMUA(c).contrast(:,infra),2)-(mean(Mon_cMUA(c).contrast(:,infra),2)),.1))
+for c = 1:length(STIM.levels)
+plot(STIM.refwin,smooth(mean(STIM.BIN.cMUA(c).contrast(:,infra),2)-(mean(STIM.DE.cMUA(c).contrast(:,infra),2)),.1))
 hold on
 ylimit = max(abs(get(gcf,'ylim')));
-set(gca,'ylim',[-10 ylimit/3],'Box','off','TickDir','out')
+set(gca,'ylim',[-10 ylimit/5],'Box','off','TickDir','out')
 end
 
 xlabel('time (ms)');
@@ -668,15 +714,27 @@ export_fig(sprintf('%s_timeplots',BRdatafile), '-jpg', '-transparent');
 % Using bar graphs to represent monocular vs binocular response layer
 % differences and fold change from one to the other
 
-rcontrast = round(contrast,2,'significant');
+rcontrast = round(STIM.levels,2,'significant');
+
+% subtraction calculations
+STIM.calc.layers.subtractionDE.full = ((STIM.BIN.layers.full(:,:)-STIM.DE.layers.full(:,:)));
+STIM.calc.layers.subtractionDE.transient = ((STIM.BIN.layers.transient(:,:)-STIM.DE.layers.transient(:,:)));
+STIM.calc.layers.subtractionDE.sustained = ((STIM.BIN.layers.sustained(:,:)-STIM.DE.layers.sustained(:,:)));
+
+% fold change calculations
+STIM.calc.layers.fchange.full = ((STIM.BIN.layers.full(:,:)-STIM.DE.layers.full(:,:))./(STIM.DE.layers.full(:,:)));
+STIM.calc.layers.fchange.transient = ((STIM.BIN.layers.transient(:,:)-STIM.DE.layers.transient(:,:))./(STIM.DE.layers.transient(:,:)));
+STIM.calc.layers.fchange.sustained = ((STIM.BIN.layers.sustained(:,:)-STIM.DE.layers.sustained(:,:))./(STIM.DE.layers.sustained(:,:)));
+
+
 
 figure('Position', [148,73,633,487]);
 subplot(3,3,1)
-bar(layers_BIN.full(:,1),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+bar(STIM.BIN.layers.full(:,1),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
-bar(layers_MON.full(:,1),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+bar(STIM.DE.layers.full(:,1),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
-ylim([-10 80]);
+ylim([-5 45]);
 xticklabels(rcontrast)
 xlabel('contrast')
 ylabel('percent change');
@@ -684,11 +742,11 @@ title('Supragranular');
 hold off
 
 subplot(3,3,2)
-bar(layers_BIN.full(:,2),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+bar(STIM.BIN.layers.full(:,2),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
-bar(layers_MON.full(:,2),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+bar(STIM.DE.layers.full(:,2),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
-ylim([-10 80]);
+ylim([-5 45]);
 xticklabels(rcontrast)
 xlabel('contrast')
 ylabel('percent change');
@@ -696,11 +754,11 @@ title('Granular');
 hold off
 
 subplot(3,3,3)
-bar(layers_BIN.full(:,3),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+bar(STIM.BIN.layers.full(:,3),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
-bar(layers_MON.full(:,3),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+bar(STIM.DE.layers.full(:,3),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
-ylim([-10 80]);
+ylim([-5 45]);
 xticklabels(rcontrast)
 xlabel('contrast')
 ylabel('percent change');
@@ -708,10 +766,10 @@ title('Infragranular');
 hold off
 
 subplot(3,3,4)
-bar((layers_BIN.full(:,1)-layers_MON.full(:,1)),0.8,'FaceColor',[0.20, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
+bar(STIM.calc.layers.subtractionDE.full(:,1),0.8,'FaceColor',[0.20, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
 hold on
 set(gca,'box','off');
-ylim([-10 30]);
+ylim([-5 15]);
 xticklabels(rcontrast)
 xlabel('contrast')
 ylabel('percent difference');
@@ -719,10 +777,10 @@ ylabel('percent difference');
 hold off
 
 subplot(3,3,5)
-bar((layers_BIN.full(:,2)-layers_MON.full(:,2)),0.8,'FaceColor',[0.20, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
+bar(STIM.calc.layers.subtractionDE.full(:,2),0.8,'FaceColor',[0.20, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
 hold on
 set(gca,'box','off');
-ylim([-10 30]);
+ylim([-5 15]);
 xticklabels(rcontrast)
 xlabel('contrast')
 ylabel('percent difference');
@@ -730,22 +788,20 @@ ylabel('percent difference');
 hold off
 
 subplot(3,3,6)
-bar((layers_BIN.full(:,3)-layers_MON.full(:,3)),0.8,'FaceColor',[0.20, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
+bar(STIM.calc.layers.subtractionDE.full(:,3),0.8,'FaceColor',[0.20, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
 hold on
 set(gca,'box','off');
-ylim([-10 30]);
+ylim([-5 15]);
 xticklabels(rcontrast)
 xlabel('contrast')
 ylabel('percent difference');
 hold off
 
-
 subplot(3,3,7)
-bar(((layers_BIN.full(:,1)-layers_MON.full(:,1))./(layers_MON.full(:,1))),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
+bar(STIM.calc.layers.fchange.full(:,1),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
 hold on
-plot(((layers_BIN.full(:,1)-layers_MON.full(:,1))./(layers_MON.full(:,1))),'-o','LineWidth',0.8);
 set(gca,'box','off');
-ylim([-1 2]);
+ylim([-.2 1]);
 xticklabels(rcontrast)
 xlabel('contrast')
 ylabel('fold change');
@@ -753,11 +809,10 @@ ylabel('fold change');
 hold off
 
 subplot(3,3,8)
-bar(((layers_BIN.full(:,2)-layers_MON.full(:,2))./(layers_MON.full(:,2))),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
+bar(STIM.calc.layers.fchange.full(:,2),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
 hold on
-plot(((layers_BIN.full(:,2)-layers_MON.full(:,2))./(layers_MON.full(:,2))),'-o','LineWidth',0.8);
 set(gca,'box','off');
-ylim([-1 2]);
+ylim([-.2 1]);
 xticklabels(rcontrast)
 xlabel('contrast')
 ylabel('fold change');
@@ -765,37 +820,31 @@ ylabel('fold change');
 hold off
 
 subplot(3,3,9)
-bar(((layers_BIN.full(:,3)-layers_MON.full(:,3))./(layers_MON.full(:,3))),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
+bar(STIM.calc.layers.fchange.full(:,3),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
 hold on
-plot(((layers_BIN.full(:,3)-layers_MON.full(:,3))./(layers_MON.full(:,3))),'-o','LineWidth',0.8);
 set(gca,'box','off');
-ylim([-1 2]);
+ylim([-.2 1]);
 xticklabels(rcontrast)
 xlabel('contrast')
 ylabel('fold change');
-%title('Infragranular');
 hold off
 
 sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','none');
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_binned-layers',BRdatafile), '-jpg', '-transparent');
+export_fig(sprintf('%s_binned-layers-new',BRdatafile), '-jpg', '-transparent');
 
 %% Transient vs sustained, Fold change Semilogx
-
-trans = ((layers_BIN.transient(:,:)-layers_MON.transient(:,:))./(layers_MON.transient(:,:)));
-sust = ((layers_BIN.sustained(:,:)-layers_MON.sustained(:,:))./(layers_MON.sustained(:,:)));
-full = ((layers_BIN.full(:,:)-layers_MON.full(:,:))./(layers_MON.full(:,:)));
 
 figure('position',[360,450.3,560,167.6]);
 subplot(1, 3, 1)
 format bank;
-semilogx(contrast,trans(:,1),'-.k');
+semilogx(STIM.levels,STIM.calc.layers.fchange.transient(:,1),'-.k');
 hold on
-semilogx(contrast,sust(:,1),'k');
-semilogx(contrast,full(:,1),'-o');
+semilogx(STIM.levels,STIM.calc.layers.fchange.sustained(:,1),'k');
+%semilogx(contrast,full(:,1),'-o');
 xticklabels('');
-ylim([-2 2]);
+ylim([-.2 1]);
 xlabel('contrast level')
 ylabel('Fold change');
 title('Supragranular');
@@ -803,34 +852,33 @@ hold off
 
 subplot(1, 3, 2)
 format bank;
-semilogx(contrast,trans(:,2),'-.k');
+semilogx(STIM.levels,STIM.calc.layers.fchange.transient(:,2),'-.k');
 hold on
-semilogx(contrast,sust(:,2),'k');
-semilogx(contrast,full(:,2),'-o');
+semilogx(STIM.levels,STIM.calc.layers.fchange.sustained(:,2),'k');
 xticklabels('');
 xlabel('contrast level')
-ylim([-2 2]);
+ylim([-.2 1]);
 title('Granular');
 hold off
 
 subplot(1, 3, 3)
 format bank;
-semilogx(contrast,trans(:,3), '-.k');
+semilogx(STIM.levels,STIM.calc.layers.fchange.transient(:,3), '-.k');
 hold on
-semilogx(contrast,sust(:,3),'k');
-semilogx(contrast,full(:,3),'-o');
+semilogx(STIM.levels,STIM.calc.layers.fchange.sustained(:,3),'k');
 xticklabels('');
-ylim([-2 2]);
+ylim([-.2 1]);
 xlabel('contrast level')
 title('Infragranular');
 hold off
 %legend('transient','sustained','full','Location','southoutside','orientation','vertical');
 
-sgtitle('Fold change from monocular to binocular: transient vs sustained');
+sgtitle({'Fold change from monocular to binocular: transient vs sustained',BRdatafile},'Interpreter','none');
 
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig(sprintf('%s_layers-transvsust_2',BRdatafile), '-jpg', '-transparent');
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('%s_layers-transvsust',BRdatafile), '-jpg', '-transparent');
 
+clear h1
 
 %% Saving Workspace to D drive
 
@@ -842,7 +890,8 @@ else
     fprintf('\nSaving workspace...\n');
 end
 
-cd('D:\')
-save(sprintf('%s',BRdatafile));
+cd('D:\mcosinteroc\')
+save(sprintf('%s',BRdatafile),'STIM','offset','BRdatafile','nct');
+%savex(sprintf('%s',BRdatafile),'lfp','hpMUA','LFP','lpLFP','lpMUA','MUA');
 
 fprintf('Workspace saved');
