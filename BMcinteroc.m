@@ -206,8 +206,7 @@ for ch = 1:length(NeuralLabels)
 end
 
 % not 100% positive that this is working as intended. Though the datalog
-% for layers does appear to match the resulting CSD (later on in this
-% script). 
+% for layers does appear to match the resulting CSD 
 switch sortdirection
     case 'ascending'
         MUA = MUA(:,idx);
@@ -274,22 +273,43 @@ end
 % contrast levels and eye to which stimulus was shown. 
 
 STIM.levels = unique(STIM.contrast);  % variable that contains all contrast levels
-
-clear i STIM.DEconditions
+clear STIM.BINconditions STIM.DEconditions STIM.NDEconditions
+clear i STIM.conditions.DE
 for i = 1:length(STIM.levels)  % monocular (DE) contrast conditions
-STIM.DEconditions(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == 0; 
+STIM.conditions.DE(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == 0; 
 end
 
-clear i STIM.NDEconditions
+clear i STIM.conditions.NDE
 
 for i = 1:length(STIM.levels)  % monocular (NDE) contrast conditions
-STIM.NDEconditions(i,:) = STIM.contrast == 0 & STIM.fixedc == STIM.levels(i); 
+STIM.conditions.NDE(i,:) = STIM.contrast == 0 & STIM.fixedc == STIM.levels(i); 
 end
 
-clear i STIM.BINconditions
-for i = 1:length(STIM.levels)  % binocular contrast conditions
-STIM.BINconditions(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == STIM.levels(i); 
+clear i STIM.conditions.BIN
+for i = 1:length(STIM.levels)  % binocular contrast (same contrast in two eyes)
+STIM.conditions.BIN(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == STIM.levels(i); 
 end
+
+for i = 1:length(STIM.levels)  % binocular contrast (same contrast in two eyes)
+STIM.conditions.DI_DElow(i,:) = STIM.contrast == STIM.levels(2) & STIM.fixedc == STIM.levels(i); 
+end
+
+for i = 1:length(STIM.levels)  % binocular contrast (same contrast in two eyes)
+STIM.conditions.DI_DEmed(i,:) = STIM.contrast == STIM.levels(3) & STIM.fixedc == STIM.levels(i); 
+end
+
+for i = 1:length(STIM.levels)  % binocular contrast (same contrast in two eyes)
+STIM.conditions.DI_DEhigh(i,:) = STIM.contrast == STIM.levels(4) & STIM.fixedc == STIM.levels(i); 
+end
+
+clear STIM.conditions.DI 
+
+STIM.conditions.DI_exclusive(1,:) = STIM.contrast == STIM.levels(2) & STIM.fixedc == STIM.levels(3); % DE22NDE45
+STIM.conditions.DI_exclusive(2,:) = STIM.contrast == STIM.levels(2) & STIM.fixedc == STIM.levels(4); % DE22NDE90
+STIM.conditions.DI_exclusive(3,:) = STIM.contrast == STIM.levels(3) & STIM.fixedc == STIM.levels(2); % DE45NDE22
+STIM.conditions.DI_exclusive(4,:) = STIM.contrast == STIM.levels(3) & STIM.fixedc == STIM.levels(4); % DE45NDE90
+STIM.conditions.DI_exclusive(5,:) = STIM.contrast == STIM.levels(4) & STIM.fixedc == STIM.levels(2); % DE90NDE22
+STIM.conditions.DI_exclusive(6,:) = STIM.contrast == STIM.levels(4) & STIM.fixedc == STIM.levels(3); % DE90NDE45
 
 %% Averaged trials by condition
 % The above matrices were just logicals. Now time to take my full cMUA
@@ -297,85 +317,103 @@ end
 % interest.
 
 % aMUA by condition
-clear m STIM.DE.cMUA NDE_cMUA STIM.BIN.cMUA 
-for m = 1:size(STIM.DEconditions,1)
-    STIM.DE.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.DEconditions(m,:)),3); 
-    STIM.NDE.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.NDEconditions(m,:)),3); %currently unused
-    STIM.BIN.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.BINconditions(m,:)),3); 
+clear m STIM.DE.cMUA STIM.NDE.cMUA STIM.BIN.cMUA 
+for m = 1:size(STIM.conditions.DE,1)
+    STIM.DE.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.DE(m,:)),3); 
+    STIM.NDE.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.NDE(m,:)),3); 
+    STIM.BIN.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.BIN(m,:)),3);
+    STIM.DI.DElow.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.DI_DElow(m,:)),3);
+    STIM.DI.DEmed.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.DI_DEmed(m,:)),3);
+    STIM.DI.DEhigh.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.DI_DEhigh(m,:)),3);
+end
+
+clear m
+for m = 1:size(STIM.conditions.DI,1)
+    STIM.DI.exclusive.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.DI.exclusive(m,:)),3);
 end
 
 % CSD by condition
 clear m Mon_CSD BIN_CSD
-for m = 1:size(STIM.DEconditions,1)
-    STIM.DE.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.DEconditions(m,:)),3); 
-    STIM.NDE.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.NDEconditions(m,:)),3); %currently unused
-    STIM.BIN.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.BINconditions(m,:)),3); 
+for m = 1:size(STIM.conditions.DE,1)
+    STIM.DE.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.DE(m,:)),3); 
+    STIM.NDE.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.NDE(m,:)),3);
+    STIM.BIN.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.BIN(m,:)),3);
+    STIM.DI.DElow.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.DI_DElow(m,:)),3);
+    STIM.DI.DEmed.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.DI_DEmed(m,:)),3);
+    STIM.DI.DEhigh.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.DI_DEhigh(m,:)),3);
+end
+
+for m = 1:size(STIM.conditions.DI_exclusive,1)
+    STIM.DI.exclusive.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.DI_exclusive(m,:)),3);
 end
 
 %% collapsing across time for each condition
 % In order to get a single number to represent the contrast response for each contact, I can collapse
 % across time. The following collapses across different lengths of time:
+% full stim duration (80ms to offset), transient (80 to 150ms), and
+% sustained (151ms to offset). 
 
 clear i 
+clear STIM.DE.coll STIM.NDE.coll STIM.BIN.coll
 for i=1:size(STIM.DE.cMUA,2)
     STIM.DE.coll.full(i,:)  = mean(STIM.DE.cMUA(i).contrast(80:offset,:),1);
-end
-
-clear i 
-for i=1:size(STIM.NDE.cMUA,2)
     STIM.NDE.coll.full(i,:)  = mean(STIM.NDE.cMUA(i).contrast(80:offset,:),1);
-end
-
-clear i 
-for i=1:size(STIM.BIN.cMUA,2)
     STIM.BIN.coll.full(i,:)  = mean(STIM.BIN.cMUA(i).contrast(80:offset,:),1);
-end
-
-clear i
-for i=1:size(STIM.DE.cMUA,2)
+    STIM.DI.DElow.coll.full(i,:)  = mean(STIM.DI.DElow.cMUA(i).contrast(80:offset,:),1);
+    STIM.DI.DEmed.coll.full(i,:)  = mean(STIM.DI.DEmed.cMUA(i).contrast(80:offset,:),1);
+    STIM.DI.DEhigh.coll.full(i,:)  = mean(STIM.DI.DEhigh.cMUA(i).contrast(80:offset,:),1);
     STIM.DE.coll.transient(i,:)  = mean(STIM.DE.cMUA(i).contrast(80:150,:),1);
-end
-
-clear i
-for i=1:size(STIM.NDE.cMUA,2)
     STIM.NDE.coll.transient(i,:)  = mean(STIM.NDE.cMUA(i).contrast(80:150,:),1);
-end
-
-clear i
-for i=1:size(STIM.BIN.cMUA,2)
     STIM.BIN.coll.transient(i,:)  = mean(STIM.BIN.cMUA(i).contrast(80:150,:),1);
-end
-
-clear i
-for i=1:size(STIM.DE.cMUA,2)
+    STIM.DI.DElow.coll.transient(i,:)  = mean(STIM.DI.DElow.cMUA(i).contrast(80:150,:),1);
+    STIM.DI.DEmed.coll.transient(i,:)  = mean(STIM.DI.DEmed.cMUA(i).contrast(80:150,:),1);
+    STIM.DI.DEhigh.coll.transient(i,:)  = mean(STIM.DI.DEhigh.cMUA(i).contrast(80:150,:),1);
     STIM.DE.coll.sustained(i,:)  = mean(STIM.DE.cMUA(i).contrast(151:offset,:),1);
+    STIM.NDE.coll.sustained(i,:)  = mean(STIM.NDE.cMUA(i).contrast(151:offset,:),1);
+    STIM.BIN.coll.sustained(i,:)  = mean(STIM.BIN.cMUA(i).contrast(151:offset,:),1);
+    STIM.DI.DElow.coll.sustained(i,:)  = mean(STIM.DI.DElow.cMUA(i).contrast(151:offset,:),1);
+    STIM.DI.DEmed.coll.sustained(i,:)  = mean(STIM.DI.DEmed.cMUA(i).contrast(151:offset,:),1);
+    STIM.DI.DEhigh.coll.sustained(i,:)  = mean(STIM.DI.DEhigh.cMUA(i).contrast(151:offset,:),1);
 end
 
 clear i
-for i=1:size(STIM.NDE.cMUA,2)
-    STIM.NDE.coll.sustained(i,:)  = mean(STIM.NDE.cMUA(i).contrast(151:offset,:),1);
-end
-
-clear i 
-for i=1:size(STIM.BIN.cMUA,2)
-    STIM.BIN.coll.sustained(i,:)  = mean(STIM.BIN.cMUA(i).contrast(151:offset,:),1);
+for i=1:size(STIM.DI.exclusive.cMUA,2)
+    STIM.DI.exclusive.coll.full(i,:)  = mean(STIM.DI.exclusive.cMUA(i).contrast(80:offset,:),1);
+    STIM.DI.exclusive.coll.transient(i,:)  = mean(STIM.DI.exclusive.cMUA(i).contrast(80:150,:),1);
+    STIM.DI.exclusive.coll.sustained(i,:)  = mean(STIM.DI.exclusive.cMUA(i).contrast(151:offset,:),1);
 end
 
 %% Binning contacts into V1 layers (informed by datalogs)
 % Seperated into full stim duration, transient response, and sustained
 % response
 
-STIM.DE.layers.full = [mean(STIM.DE.coll.full(:,supra),2),mean(STIM.DE.coll.full(:,gran),2),mean(STIM.DE.coll.full(:,infra),2)];
-STIM.DE.layers.transient = [mean(STIM.DE.coll.transient(:,supra),2),mean(STIM.DE.coll.transient(:,gran),2),mean(STIM.DE.coll.transient(:,infra),2)];
-STIM.DE.layers.sustained = [mean(STIM.DE.coll.sustained(:,supra),2),mean(STIM.DE.coll.sustained(:,gran),2),mean(STIM.DE.coll.sustained(:,infra),2)];
+STIM.DE.layers.full = [mean(STIM.DE.coll.full(:,STIM.laminae.supra),2),mean(STIM.DE.coll.full(:,STIM.laminae.gran),2),mean(STIM.DE.coll.full(:,STIM.laminae.infra),2)];
+STIM.DE.layers.transient = [mean(STIM.DE.coll.transient(:,STIM.laminae.supra),2),mean(STIM.DE.coll.transient(:,STIM.laminae.gran),2),mean(STIM.DE.coll.transient(:,STIM.laminae.infra),2)];
+STIM.DE.layers.sustained = [mean(STIM.DE.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.DE.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.DE.coll.sustained(:,STIM.laminae.infra),2)];
 
-STIM.NDE.layers.full = [mean(STIM.NDE.coll.full(:,supra),2),mean(STIM.NDE.coll.full(:,gran),2),mean(STIM.NDE.coll.full(:,infra),2)];
-STIM.NDE.layers.transient = [mean(STIM.NDE.coll.transient(:,supra),2),mean(STIM.NDE.coll.transient(:,gran),2),mean(STIM.NDE.coll.transient(:,infra),2)];
-STIM.NDE.layers.sustained = [mean(STIM.NDE.coll.sustained(:,supra),2),mean(STIM.NDE.coll.sustained(:,gran),2),mean(STIM.NDE.coll.sustained(:,infra),2)];
+STIM.NDE.layers.full = [mean(STIM.NDE.coll.full(:,STIM.laminae.supra),2),mean(STIM.NDE.coll.full(:,STIM.laminae.gran),2),mean(STIM.NDE.coll.full(:,STIM.laminae.infra),2)];
+STIM.NDE.layers.transient = [mean(STIM.NDE.coll.transient(:,STIM.laminae.supra),2),mean(STIM.NDE.coll.transient(:,STIM.laminae.gran),2),mean(STIM.NDE.coll.transient(:,STIM.laminae.infra),2)];
+STIM.NDE.layers.sustained = [mean(STIM.NDE.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.NDE.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.NDE.coll.sustained(:,STIM.laminae.infra),2)];
 
-STIM.BIN.layers.full = [mean(STIM.BIN.coll.full(:,supra),2),mean(STIM.BIN.coll.full(:,gran),2), mean(STIM.BIN.coll.full(:,infra),2)];
-STIM.BIN.layers.transient = [mean(STIM.BIN.coll.transient(:,supra),2),mean(STIM.BIN.coll.transient(:,gran),2),mean(STIM.BIN.coll.transient(:,infra),2)];
-STIM.BIN.layers.sustained = [mean(STIM.BIN.coll.sustained(:,supra),2),mean(STIM.BIN.coll.sustained(:,gran),2),mean(STIM.BIN.coll.sustained(:,infra),2)];
+STIM.BIN.layers.full = [mean(STIM.BIN.coll.full(:,STIM.laminae.supra),2),mean(STIM.BIN.coll.full(:,STIM.laminae.gran),2), mean(STIM.BIN.coll.full(:,STIM.laminae.infra),2)];
+STIM.BIN.layers.transient = [mean(STIM.BIN.coll.transient(:,STIM.laminae.supra),2),mean(STIM.BIN.coll.transient(:,STIM.laminae.gran),2),mean(STIM.BIN.coll.transient(:,STIM.laminae.infra),2)];
+STIM.BIN.layers.sustained = [mean(STIM.BIN.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.BIN.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.BIN.coll.sustained(:,STIM.laminae.infra),2)];
+
+STIM.DI.DElow.layers.full = [mean(STIM.DI.DElow.coll.full(:,STIM.laminae.supra),2),mean(STIM.DI.DElow.coll.full(:,STIM.laminae.gran),2), mean(STIM.DI.DElow.coll.full(:,STIM.laminae.infra),2)];
+STIM.DI.DElow.layers.transient = [mean(STIM.DI.DElow.coll.transient(:,STIM.laminae.supra),2),mean(STIM.DI.DElow.coll.transient(:,STIM.laminae.gran),2),mean(STIM.DI.DElow.coll.transient(:,STIM.laminae.infra),2)];
+STIM.DI.DElow.layers.sustained = [mean(STIM.DI.DElow.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.DI.DElow.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.DI.DElow.coll.sustained(:,STIM.laminae.infra),2)];
+
+STIM.DI.DEmed.layers.full = [mean(STIM.DI.DEmed.coll.full(:,STIM.laminae.supra),2),mean(STIM.DI.DEmed.coll.full(:,STIM.laminae.gran),2), mean(STIM.DI.DEmed.coll.full(:,STIM.laminae.infra),2)];
+STIM.DI.DEmed.layers.transient = [mean(STIM.DI.DEmed.coll.transient(:,STIM.laminae.supra),2),mean(STIM.DI.DEmed.coll.transient(:,STIM.laminae.gran),2),mean(STIM.DI.DEmed.coll.transient(:,STIM.laminae.infra),2)];
+STIM.DI.DEmed.layers.sustained = [mean(STIM.DI.DEmed.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.DI.DEmed.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.DI.DEmed.coll.sustained(:,STIM.laminae.infra),2)];
+
+STIM.DI.DEhigh.layers.full = [mean(STIM.DI.DEhigh.coll.full(:,STIM.laminae.supra),2),mean(STIM.DI.DEhigh.coll.full(:,STIM.laminae.gran),2), mean(STIM.DI.DEhigh.coll.full(:,STIM.laminae.infra),2)];
+STIM.DI.DEhigh.layers.transient = [mean(STIM.DI.DEhigh.coll.transient(:,STIM.laminae.supra),2),mean(STIM.DI.DEhigh.coll.transient(:,STIM.laminae.gran),2),mean(STIM.DI.DEhigh.coll.transient(:,STIM.laminae.infra),2)];
+STIM.DI.DEhigh.layers.sustained = [mean(STIM.DI.DEhigh.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.DI.DEhigh.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.DI.DEhigh.coll.sustained(:,STIM.laminae.infra),2)];
+
+STIM.DI.exclusive.layers.full = [mean(STIM.DI.exclusive.coll.full(:,STIM.laminae.supra),2),mean(STIM.DI.exclusive.coll.full(:,STIM.laminae.gran),2), mean(STIM.DI.exclusive.coll.full(:,STIM.laminae.infra),2)];
+STIM.DI.exclusive.layers.transient = [mean(STIM.DI.exclusive.coll.transient(:,STIM.laminae.supra),2),mean(STIM.DI.exclusive.coll.transient(:,STIM.laminae.gran),2),mean(STIM.DI.exclusive.coll.transient(:,STIM.laminae.infra),2)];
+STIM.DI.exclusive.layers.sustained = [mean(STIM.DI.exclusive.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.DI.exclusive.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.DI.exclusive.coll.sustained(:,STIM.laminae.infra),2)];
 
 %% Plotting: (SNAPSHOT)
 % All averaged, baseline corrected trials (LFP, aMUA, CSD, iCSD)
@@ -430,7 +468,7 @@ subplot(1,length(STIM.levels),numel(STIM.levels))
 hold on
 contrastValue = max(STIM.levels);
 global scalingfactor
-f_ShadedLinePlotbyDepth(mean(STIM.aMUA(:,:,STIM.DEconditions(numel(STIM.levels),:)),3),0:(1/(numel(STIM.channels))):1,STIM.refwin,STIM.channels,1,1);
+f_ShadedLinePlotbyDepth(mean(STIM.aMUA(:,:,STIM.conditions.DE(numel(STIM.levels),:)),3),0:(1/(numel(STIM.channels))):1,STIM.refwin,STIM.channels,1,1);
 title('1 contrast in DE');
 xlabel('time (ms)');
 hold off
@@ -438,7 +476,7 @@ hold off
 clear i 
 for i = 1:length(STIM.levels)-1
     subplot(1,length(STIM.levels),i);
-    f_ShadedLinePlotbyDepth_BAM(mean(STIM.aMUA(:,:,STIM.DEconditions(i,:)),3),0:(1/(numel(STIM.channels))):1,STIM.refwin,STIM.channels,1,1,false,scalingfactor);
+    f_ShadedLinePlotbyDepth_BAM(mean(STIM.aMUA(:,:,STIM.conditions.DE(i,:)),3),0:(1/(numel(STIM.channels))):1,STIM.refwin,STIM.channels,1,1,false,scalingfactor);
    
 plot([0 0], ylim,'k')
 plot([offset offset], ylim,'k')
@@ -462,7 +500,7 @@ sgtitle({'aMUA | Varying contrast to dominant eye',BRdatafile},'Interpreter','no
 % binocular stimulation (red bar).
 
 figure('Position', [60 211 1100 300]);
-selectchannels = [supra(1):3:infra(end)];
+selectchannels = [STIM.laminae.supra(1):3:STIM.laminae.infra(end)];
 %selectchannels = [19 20 21 22 23 24 25 26];
 clear c
 for c = 1:length(selectchannels)
@@ -499,7 +537,7 @@ for c = 1:3
     plot(fliplr(STIM.DE.coll.transient(c+1,:)),STIM.channels,'b','linewidth',.5);
     hold on
     plot(fliplr(STIM.BIN.coll.transient(c+1,:)),STIM.channels,'.-r','linewidth',0.5);
-    hline(STIM.channels(end)-gran(end),'-.')
+    hline(STIM.channels(end)-STIM.laminae.gran(end),'-.')
     xlim([-10 80])
     yticks('')
     yticklabels(fliplr(1:nct))
@@ -526,7 +564,7 @@ for c = 4:6
     plot(fliplr(STIM.DE.coll.sustained(c-2,:)),STIM.channels,'b','linewidth',.5);
     hold on
     plot(fliplr(STIM.BIN.coll.sustained(c-2,:)),STIM.channels,'.-r','linewidth',0.5);
-    hline(STIM.channels(end)-gran(end),'-.')
+    hline(STIM.channels(end)-STIM.laminae.gran(end),'-.')
     xlim([-10 80])
     yticks('')
     yticklabels(fliplr(1:nct))
@@ -553,6 +591,7 @@ export_fig(sprintf('%s_tightplot',BRdatafile), '-jpg', '-transparent');
 figure('position',[185 150 887 450]);
 
 h = subplot(1,4,1);
+bAVG_iCSD = filterCSD(STIM.bsl.CSD')';
 imagesc(STIM.refwin,STIM.channels,bAVG_iCSD');
 hold on
 colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
@@ -634,9 +673,9 @@ figure('position',[213.6666666666667,149.6666666666667,724.6666666666666,425.333
 subplot(2,3,1)
 clear c
 for c = 1:length(STIM.levels)
-plot(STIM.refwin,mean(STIM.DE.cMUA(c).contrast(:,supra),2),'color','b')
+plot(STIM.refwin,mean(STIM.DE.cMUA(c).contrast(:,STIM.laminae.supra),2),'color','b')
 hold on
-plot(STIM.refwin,mean(STIM.BIN.cMUA(c).contrast(:,supra),2),'color','r')
+plot(STIM.refwin,mean(STIM.BIN.cMUA(c).contrast(:,STIM.laminae.supra),2),'color','r')
 %ylimit = max(abs(get(gcf,'ylim')));
 ylimit = 100;
 set(gca,'ylim',[-10 ylimit],'Box','off','TickDir','out')
@@ -649,9 +688,9 @@ title('Supragranular');
 subplot(2,3,2)
 clear c
 for c = 1:length(STIM.levels)
-plot(STIM.refwin,mean(STIM.DE.cMUA(c).contrast(:,gran),2),'color','b')
+plot(STIM.refwin,mean(STIM.DE.cMUA(c).contrast(:,STIM.laminae.gran),2),'color','b')
 hold on
-plot(STIM.refwin,mean(STIM.BIN.cMUA(c).contrast(:,gran),2),'color','r')
+plot(STIM.refwin,mean(STIM.BIN.cMUA(c).contrast(:,STIM.laminae.gran),2),'color','r')
 set(gca,'ylim',[-10 ylimit],'Box','off','TickDir','out')
 end
 
@@ -661,9 +700,9 @@ title('Granular');
 subplot(2,3,3)
 clear c
 for c = 1:length(STIM.levels)
-plot(STIM.refwin,mean(STIM.DE.cMUA(c).contrast(:,infra),2),'color','b')
+plot(STIM.refwin,mean(STIM.DE.cMUA(c).contrast(:,STIM.laminae.infra),2),'color','b')
 hold on
-plot(STIM.refwin,mean(STIM.BIN.cMUA(c).contrast(:,infra),2),'color','r')
+plot(STIM.refwin,mean(STIM.BIN.cMUA(c).contrast(:,STIM.laminae.infra),2),'color','r')
 set(gca,'ylim',[-10 ylimit],'Box','off','TickDir','out')
 end
 
@@ -673,7 +712,7 @@ title('Infragranular');
 subplot(2,3,4)
 clear c
 for c = 1:length(STIM.levels)
-plot(STIM.refwin,smooth(mean(STIM.BIN.cMUA(c).contrast(:,supra),2)-(mean(STIM.DE.cMUA(c).contrast(:,supra),2)),.1))
+plot(STIM.refwin,smooth(mean(STIM.BIN.cMUA(c).contrast(:,STIM.laminae.supra),2)-(mean(STIM.DE.cMUA(c).contrast(:,STIM.laminae.supra),2)),.1))
 hold on
 ylimit = max(abs(get(gcf,'ylim')));
 set(gca,'ylim',[-10 ylimit/5],'Box','off','TickDir','out')
@@ -685,7 +724,7 @@ xlabel('time (ms)');
 subplot(2,3,5)
 clear c
 for c = 1:length(STIM.levels)
-plot(STIM.refwin,smooth(mean(STIM.BIN.cMUA(c).contrast(:,gran),2)-(mean(STIM.DE.cMUA(c).contrast(:,gran),2)),.1))
+plot(STIM.refwin,smooth(mean(STIM.BIN.cMUA(c).contrast(:,STIM.laminae.gran),2)-(mean(STIM.DE.cMUA(c).contrast(:,STIM.laminae.gran),2)),.1))
 hold on
 ylimit = max(abs(get(gcf,'ylim')));
 set(gca,'ylim',[-10 ylimit/5],'Box','off','TickDir','out')
@@ -696,7 +735,7 @@ xlabel('time (ms)');
 subplot(2,3,6)
 clear c
 for c = 1:length(STIM.levels)
-plot(STIM.refwin,smooth(mean(STIM.BIN.cMUA(c).contrast(:,infra),2)-(mean(STIM.DE.cMUA(c).contrast(:,infra),2)),.1))
+plot(STIM.refwin,smooth(mean(STIM.BIN.cMUA(c).contrast(:,STIM.laminae.infra),2)-(mean(STIM.DE.cMUA(c).contrast(:,STIM.laminae.infra),2)),.1))
 hold on
 ylimit = max(abs(get(gcf,'ylim')));
 set(gca,'ylim',[-10 ylimit/5],'Box','off','TickDir','out')
@@ -707,8 +746,8 @@ xlabel('time (ms)');
 sgtitle({'V1 laminar contrast response profiles: monocular (blue) vs binocular (red)'...
    ,BRdatafile},'Interpreter','none');
 
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_timeplots',BRdatafile), '-jpg', '-transparent');
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig(sprintf('%s_timeplots',BRdatafile), '-jpg', '-transparent');
 
 %% Bar Graphs of Binned Layers (Binned Layers)
 % Using bar graphs to represent monocular vs binocular response layer
