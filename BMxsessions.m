@@ -3,7 +3,7 @@
 
 clear
 
-%% Step 1: Load in variables from sessions
+%% Establish directory for sessions
 myFolder = 'D:\mcosinteroc\';  % Specify the folder where the files live.
 
 % Check to make sure that folder actually exists.  Warn user if it doesn't.
@@ -21,287 +21,53 @@ baseFileName{k} = matFiles(k).name;
 fullFileName{k} = fullfile(myFolder, baseFileName{k});
 end
 
-% Variable: Binned Layers
-clear i 
+%% Variable: Layers
 
+% Step 1: Load in variables
+clear i 
 for i = 1: length(fullFileName)
 tmp = load(fullFileName{i},'STIM');
-sessions.BIN.layers.full(:,:,i) = tmp.STIM.BIN.layers.full(2:4,:);
-sessions.BIN.layers.transient(:,:,i) = tmp.STIM.BIN.layers.transient(2:4,:);
-sessions.BIN.layers.sustained(:,:,i) = tmp.STIM.BIN.layers.sustained(2:4,:);
-sessions.DE.layers.full(:,:,i) = tmp.STIM.DE.layers.full(2:4,:);
-sessions.DE.layers.transient(:,:,i) = tmp.STIM.DE.layers.transient(2:4,:);
-sessions.DE.layers.sustained(:,:,i) = tmp.STIM.DE.layers.sustained(2:4,:);
+sessions.BIN.layers.full(:,:,i) = tmp.STIM.BIN.layers.full(:,:);
+sessions.BIN.layers.transient(:,:,i) = tmp.STIM.BIN.layers.transient(:,:);
+sessions.BIN.layers.sustained(:,:,i) = tmp.STIM.BIN.layers.sustained(:,:);
+sessions.DE.layers.full(:,:,i) = tmp.STIM.DE.layers.full(:,:);
+sessions.DE.layers.transient(:,:,i) = tmp.STIM.DE.layers.transient(:,:);
+sessions.DE.layers.sustained(:,:,i) = tmp.STIM.DE.layers.sustained(:,:);
+sessions.NDE.layers.full(:,:,i) = tmp.STIM.NDE.layers.full(:,:);
+sessions.NDE.layers.transient(:,:,i) = tmp.STIM.NDE.layers.transient(:,:);
+sessions.NDE.layers.sustained(:,:,i) = tmp.STIM.NDE.layers.sustained(:,:);
+sessions.DI.layers.full(:,:,i) = tmp.STIM.DI.exclusive.layers.full(:,:);
+sessions.DI.layers.transient(:,:,i) = tmp.STIM.DI.exclusive.layers.transient(:,:);
+sessions.DI.layers.sustained(:,:,i) = tmp.STIM.DI.exclusive.layers.sustained(:,:);
 end
 
-% Calculation: mean and error
+% Step 2: Calculation (mean and std error)
+
+% fieldnames for FOR loop
 session_binfields = fieldnames(sessions.BIN.layers);
 session_defields = fieldnames(sessions.DE.layers);
+session_ndefields = fieldnames(sessions.NDE.layers);
+session_difields = fieldnames(sessions.DI.layers);
 
 clear i AVG
 for i = 1:length(session_binfields)
-    AVG.DE.layers.(session_defields{i}).data = mean(sessions.DE.layers.(session_defields{i}),3);
-    AVG.DE.layers.(session_defields{i}).error = std(sessions.DE.layers.(session_defields{i}),0,3) ...
+    AVG.DE.layers.(session_defields{i}).data = nanmean(sessions.DE.layers.(session_defields{i}),3);
+    AVG.DE.layers.(session_defields{i}).error = nanstd(sessions.DE.layers.(session_defields{i}),0,3) ...
         / (sqrt(size(sessions.DE.layers.(session_defields{i}),3)));
-    AVG.BIN.layers.(session_binfields{i}).data = mean(sessions.BIN.layers.(session_binfields{i}),3);
-    AVG.BIN.layers.(session_binfields{i}).error = std(sessions.BIN.layers.(session_binfields{i}),0,3) ...
+    AVG.BIN.layers.(session_binfields{i}).data = nanmean(sessions.BIN.layers.(session_binfields{i}),3);
+    AVG.BIN.layers.(session_binfields{i}).error = nanstd(sessions.BIN.layers.(session_binfields{i}),0,3) ...
         / (sqrt(size(sessions.BIN.layers.(session_binfields{i}),3)));
+    AVG.NDE.layers.(session_ndefields{i}).data = nanmean(sessions.NDE.layers.(session_ndefields{i}),3);
+    AVG.NDE.layers.(session_ndefields{i}).error = nanstd(sessions.NDE.layers.(session_ndefields{i}),0,3) ...
+        / (sqrt(size(sessions.NDE.layers.(session_ndefields{i}),3)));
+    AVG.DI.layers.(session_difields{i}).data = nanmean(sessions.DI.layers.(session_difields{i}),3);
+    AVG.DI.layers.(session_difields{i}).error = nanstd(sessions.DI.layers.(session_difields{i}),0,3) ...
+        / (sqrt(size(sessions.DI.layers.(session_difields{i}),3)));
 end
-    
-% AVG.BIN.layers.full.data = mean(sessions.BIN.layers.full,3);
-% AVG.BIN.layers.full.error = std(sessions.BIN.layers.full,0,3) / (sqrt(size(sessions.BIN.layers.full,3)));
-% AVG.BIN.layers.transient.data = mean(sessions.BIN.layers.transient,3);
-% AVG.BIN.layers.transient.error = std(sessions.BIN.layers.transient,0,3) / (sqrt(size(sessions.BIN.layers.transient,3)));
-% AVG.BIN.layers.sustained.data = mean(sessions.BIN.layers.sustained,3);
-% AVG.BIN.layers.sustained.error = std(sessions.BIN.layers.sustained,0,3) / (sqrt(size(sessions.BIN.layers.sustained,3)));
-% 
-% AVG.DE.layers.full.data = mean(sessions.DE.layers.full,3);
-% AVG.DE.layers.full.error = std(sessions.DE.layers.full,0,3) / (sqrt(size(sessions.DE.layers.full,3)));
-% AVG.DE.layers.transient.data = mean(sessions.DE.layers.transient,3);
-% AVG.DE.layers.transient.error = std(sessions.DE.layers.transient,0,3)/(sqrt(size(sessions.DE.layers.transient,3)));
-% AVG.DE.layers.sustained.data = mean(sessions.DE.layers.sustained,3);
-% AVG.DE.layers.sustained.error = std(sessions.DE.layers.sustained,0,3)/(sqrt(size(sessions.DE.layers.sustained,3)));
 
+%% Variable: Calc, Subtraction plots
 
-%% PLOT (Averaged Bar Graphs)
-% Transient
-contrast = [.22 .45 .9];
-figure('Position', [148,73,633,487]);
-subplot(3,3,1)
-bar(AVG.BIN.layers.transient.data(:,1),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
-hold on
-errorbar(AVG.BIN.layers.transient.data(:,1),AVG.BIN.layers.transient.error(:,1),'o','marker','none','color','k');
-bar(AVG.DE.layers.transient.data(:,1),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
-errorbar(AVG.DE.layers.transient.data(:,1),AVG.DE.layers.transient.error(:,1),'o','marker','none','color','k');
-set(gca,'box','off');
-ylim([-5 50]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('percent change');
-title('Supragranular');
-hold off
-
-subplot(3,3,2)
-bar(AVG.BIN.layers.transient.data(:,2),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
-hold on
-errorbar(AVG.BIN.layers.transient.data(:,2),AVG.BIN.layers.transient.error(:,2),'o','marker','none','color','k');
-bar(AVG.DE.layers.transient.data(:,2),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
-errorbar(AVG.DE.layers.transient.data(:,2),AVG.DE.layers.transient.error(:,2),'o','marker','none','color','k');
-set(gca,'box','off');
-ylim([-5 50]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('percent change');
-title('Granular');
-hold off
-
-subplot(3,3,3)
-bar(AVG.BIN.layers.transient.data(:,3),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
-hold on
-errorbar(AVG.BIN.layers.transient.data(:,3),AVG.BIN.layers.transient.error(:,3),'o','marker','none','color','k');
-bar(AVG.DE.layers.transient.data(:,3),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
-errorbar(AVG.DE.layers.transient.data(:,3),AVG.DE.layers.transient.error(:,3),'o','marker','none','color','k');
-set(gca,'box','off');
-ylim([-5 50]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('percent change');
-title('Infragranular');
-hold off
-
-subplot(3,3,4)
-bar((AVG.BIN.layers.transient.data(:,1)-AVG.DE.layers.transient.data(:,1)),0.8,'FaceColor',[0.3, .3, 0.3],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-5 20]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('percent difference');
-%title('Supragranular');
-hold off
-
-subplot(3,3,5)
-bar((AVG.BIN.layers.transient.data(:,2)-AVG.DE.layers.transient.data(:,2)),0.8,'FaceColor',[0.3, .3, 0.3],'EdgeColor','k','LineWidth',0.8);hold on
-set(gca,'box','off');
-ylim([-5 20]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('percent difference');
-%title('Granular');
-hold off
-
-subplot(3,3,6)
-bar((AVG.BIN.layers.transient.data(:,3)-AVG.DE.layers.transient.data(:,3)),0.8,'FaceColor',[0.3, .3, 0.3],'EdgeColor','k','LineWidth',0.8);hold on
-set(gca,'box','off');
-ylim([-5 20]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('percent difference');
-hold off
-
-subplot(3,3,7)
-bar((AVG.BIN.layers.transient.data(:,1)-AVG.DE.layers.transient.data(:,1)) ...
-    ./ (AVG.DE.layers.transient.data(:,1)),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-.2 1]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('fold change');
-%title('Supragranular');
-hold off
-
-subplot(3,3,8)
-bar((AVG.BIN.layers.transient.data(:,2)-AVG.DE.layers.transient.data(:,2)) ...
-    ./ (AVG.DE.layers.transient.data(:,2)),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-.2 1]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('fold change');
-%title('Granular');
-hold off
-
-subplot(3,3,9)
-bar((AVG.BIN.layers.transient.data(:,3)-AVG.DE.layers.transient.data(:,3)) ...
-    ./ (AVG.DE.layers.transient.data(:,3)),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-.2 1]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('fold change');
-%title('Infragranular');
-hold off
-
-sgtitle(sprintf('Transient: Binocular vs monocular stimulation | %d sessions',length(fullFileName)),'Interpreter','none');
-
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('AVG_binned-layers_transient-new'), '-jpg', '-transparent');
-
-%% PLOT (Averaged Bar Graphs)
-% Sustained response
-
-figure('Position', [148,73,633,487]);
-subplot(3,3,1)
-bar(AVG.BIN.layers.sustained.data(:,1),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
-hold on
-errorbar(AVG.BIN.layers.sustained.data(:,1),AVG.BIN.layers.sustained.error(:,1),'o','marker','none','color','k');
-bar(AVG.DE.layers.sustained.data(:,1),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
-errorbar(AVG.DE.layers.sustained.data(:,1),AVG.DE.layers.sustained.error(:,1),'o','marker','none','color','k');
-set(gca,'box','off');
-ylim([-5 50]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('percent change');
-title('Supragranular');
-hold off
-
-subplot(3,3,2)
-bar(AVG.BIN.layers.sustained.data(:,2),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
-hold on
-errorbar(AVG.BIN.layers.sustained.data(:,2),AVG.BIN.layers.sustained.error(:,2),'o','marker','none','color','k');
-bar(AVG.DE.layers.sustained.data(:,2),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
-errorbar(AVG.DE.layers.sustained.data(:,2),AVG.DE.layers.sustained.error(:,2),'o','marker','none','color','k');
-set(gca,'box','off');
-ylim([-5 50]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('percent change');
-title('Granular');
-hold off
-
-subplot(3,3,3)
-bar(AVG.BIN.layers.sustained.data(:,3),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
-hold on
-errorbar(AVG.BIN.layers.sustained.data(:,3),AVG.BIN.layers.sustained.error(:,3),'o','marker','none','color','k');
-bar(AVG.DE.layers.sustained.data(:,3),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
-errorbar(AVG.DE.layers.sustained.data(:,3),AVG.DE.layers.sustained.error(:,3),'o','marker','none','color','k');
-set(gca,'box','off');
-ylim([-5 50]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('percent change');
-title('Infragranular');
-hold off
-
-subplot(3,3,4)
-bar((AVG.BIN.layers.sustained.data(:,1)-AVG.DE.layers.sustained.data(:,1)),0.8,'FaceColor',[0.3, .3, 0.3],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-5 20]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('percent difference');
-%title('Supragranular');
-hold off
-
-subplot(3,3,5)
-bar((AVG.BIN.layers.sustained.data(:,2)-AVG.DE.layers.sustained.data(:,2)),0.8,'FaceColor',[0.3, .3, 0.3],'EdgeColor','k','LineWidth',0.8);hold on
-set(gca,'box','off');
-ylim([-5 20]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('percent difference');
-%title('Granular');
-hold off
-
-subplot(3,3,6)
-bar((AVG.BIN.layers.sustained.data(:,3)-AVG.DE.layers.sustained.data(:,3)),0.8,'FaceColor',[0.3, .3, 0.3],'EdgeColor','k','LineWidth',0.8);hold on
-set(gca,'box','off');
-ylim([-5 20]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('percent difference');
-hold off
-
-subplot(3,3,7)
-bar((AVG.BIN.layers.sustained.data(:,1)-AVG.DE.layers.sustained.data(:,1)) ...
-    ./ (AVG.DE.layers.sustained.data(:,1)),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-.2 1]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('fold change');
-%title('Supragranular');
-hold off
-
-subplot(3,3,8)
-bar((AVG.BIN.layers.sustained.data(:,2)-AVG.DE.layers.sustained.data(:,2)) ...
-    ./ (AVG.DE.layers.sustained.data(:,2)),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-.2 1]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('fold change');
-%title('Granular');
-hold off
-
-subplot(3,3,9)
-bar((AVG.BIN.layers.sustained.data(:,3)-AVG.DE.layers.sustained.data(:,3)) ...
-    ./ (AVG.DE.layers.sustained.data(:,3)),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-.2 1]);
-xticklabels(contrast)
-xlabel('contrast')
-ylabel('fold change');
-%title('Infragranular');
-hold off
-
-sgtitle(sprintf('Sustained: Binocular vs monocular stimulation | %d sessions',length(fullFileName)),'Interpreter','none');
-
-
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('AVG_binned-layers_sustained'), '-jpg', '-transparent');
-
-%% Alignment of collapsed contacts
-%% Step 1: Load variable
-
-% Variable: Collapsed subtractionDE
+% Step 1: load Variable
 clear i tmp subtractionDE
 for i = 1: length(fullFileName)
 tmp = load(fullFileName{i},'STIM');
@@ -309,124 +75,615 @@ sessions.calc.subtractionDE.transient(:,:,i) = tmp.STIM.calc.contacts.subtractio
 sessions.calc.subtractionDE.sustained(:,:,i) = tmp.STIM.calc.contacts.subtractionDE.sustained(2:4,:);
 end
 
-channels = size(sessions.calc.subtractionDE.transient,3);
-
-% Step 2: Permuate matrix to work with align function
+% Step 2: Permute matrix to work with align function
 sessions_subtractionDE_transient = permute(sessions.calc.subtractionDE.transient,[3 1 2]);
 sessions_subtractionDE_sustained = permute(sessions.calc.subtractionDE.sustained,[3 1 2]);
 
-%% Alignment
-% Step 3: load depth matrix (pre-defined)
-depth = nan(length(fullFileName),size(sessions_subtractionDE_transient,3));
+% Step 2.5: Load in alignment matrix
+load('SessionDepths'); % found in dependencies folder
 
-% Step 4: Alignment to bottom of layer 4
-[lDAT_transient, ~, ~] = laminarmean(sessions_subtractionDE_transient,BOL4);
+% Step 3: Alignment
+[AVG.calc.subtraction.transient, ~, ~] = laminarmean(sessions_subtractionDE_transient,BOL4);
+[AVG.calc.subtraction.sustained, corticaldepth, N] = laminarmean(sessions_subtractionDE_sustained,BOL4);
 
-% aligned to bottom of layer 4:
-[lDAT_sustained, corticaldepth, N] = laminarmean(sessions_subtractionDE_sustained,BOL4);
+clear sessions_subtractionDE_transient sessions_subtractionDE_sustained
 
+%% Variable: Coll
 
-%% Plotting aligned data
-
-figure;
-subplot(1,2,1)
-plot(lDAT_transient,corticaldepth);
-hold on 
-grid on
-xlim([-5 20]);
-hline(0,'-.','BOL4')
-set(gca,'box','off');
-%yticks(1:length(lDAT_transient))
-% yticklabels(fliplr(1:nct))
-% ylim([1 length(lDAT_transient)])
-xlabel('Percent change');
-title('Transient: Aligned');
-%legend(num2str(contrast),'Location','southoutside','orientation','horizontal');
-hold off
-
-subplot(1,2,2)
-plot(lDAT_sustained,corticaldepth);
-hold on 
-grid on
-xlim([-5 20]);
-hline(0,'-.','BOL4')
-set(gca,'box','off');
-% yticks(1:nct)
-% yticklabels(fliplr(1:nct))
-% ylim([1 nct])
-xlabel('Percent change');
-title('Sustained: Aligned');
-hold off
-
-%legend({num2str(contrast(:))},'Location','northoutside','orientation','vertical');
-
-sgtitle(sprintf('Session-averaged (N = %d) subtraction plot (BIN - DE)\nTransient vs Sustained',length(fullFileName)));
-
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('AVG_subtraction-plots'), '-jpg', '-transparent');
-
-
-
-%%
-figure;
-
-not_aligned_trans = permute(sessions_subtractionDE_transient,[2 3 1]);
-%not_aligned_trans = permute(not_aligned_trans,[3 2 1]);
-subplot(1,1,1)
-hold on
-clear i
-for i=1:size(not_aligned_trans,3)
-plot(fliplr(not_aligned_trans(:,:,i)),1:32)
+% Step 1: Load variable
+clear i tmp subtractionDE
+for i = 1: length(fullFileName)
+tmp = load(fullFileName{i},'STIM');
+sessions.DE.coll.transient(:,:,i) = tmp.STIM.DE.coll.transient(:,:);
+sessions.DE.coll.sustained(:,:,i) = tmp.STIM.DE.coll.sustained(:,:);
+sessions.NDE.coll.transient(:,:,i) = tmp.STIM.NDE.coll.transient(:,:);
+sessions.NDE.coll.sustained(:,:,i) = tmp.STIM.NDE.coll.sustained(:,:);
+sessions.BIN.coll.transient(:,:,i) = tmp.STIM.BIN.coll.transient(:,:);
+sessions.BIN.coll.sustained(:,:,i) = tmp.STIM.BIN.coll.sustained(:,:);
+sessions.DI.coll.transient(:,:,i) = tmp.STIM.DI.exclusive.coll.transient(:,:);
+sessions.DI.coll.sustained(:,:,i) = tmp.STIM.DI.exclusive.coll.sustained(:,:);
 end
-grid on
-xlim([-15 55]);
-set(gca,'box','off');
-%yticks(1:32)
-yticklabels(fliplr(0:5:35))
-%ylim([1 32])
-xlabel('Percent change');
-title('Transient: All sessions, NOT ALIGNED');
-%legend(num2str(contrast),'Location','southoutside','orientation','horizontal');
-hold off
 
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('AVG_subtraction-plots-test-all'), '-jpg', '-transparent');
-%%
-subplot(1,2,2)
-plot(lDAT_transient,corticaldepth);
-hold on 
-grid on
-xlim([-5 20]);
-hline(0,'-.')
-set(gca,'box','off');
-% yticks(1:length(lDAT_transient))
-% yticklabels(fliplr(1:nct))
-% ylim([1 length(lDAT_transient)])
-xlabel('Percent change');
-title('Transient: Aligned');
-hold off
+% Step 2: Permuate matrix to work with align function
 
-legend({num2str(contrast(:))},'Location','northoutside','orientation','horizontal');
+perm.sessions_collDE_transient = permute(sessions.DE.coll.transient,[3 1 2]);
+perm.sessions_collDE_sustained = permute(sessions.DE.coll.sustained,[3 1 2]);
+perm.sessions_collNDE_transient = permute(sessions.NDE.coll.transient,[3 1 2]);
+perm.sessions_collNDE_sustained = permute(sessions.NDE.coll.sustained,[3 1 2]);
+perm.sessions_collBIN_transient = permute(sessions.BIN.coll.transient,[3 1 2]);
+perm.sessions_collBIN_sustained = permute(sessions.BIN.coll.sustained,[3 1 2]);
+perm.sessions_collDI_transient = permute(sessions.DI.coll.transient,[3 1 2]);
+perm.sessions_collDI_sustained = permute(sessions.DI.coll.sustained,[3 1 2]);
 
-sgtitle('Session-averaged subtraction plot (Binocular - monocular)');
+% Step 3: Alignment
 
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig(sprintf('AVG_subtraction-plots-test'), '-jpg', '-transparent');
+[AVG.DE.coll.transient, ~, ~] = laminarmean(perm.sessions_collDE_transient,BOL4);
+[AVG.DE.coll.sustained, ~, ~] = laminarmean(perm.sessions_collDE_sustained,BOL4);
+[AVG.NDE.coll.transient, ~, ~] = laminarmean(perm.sessions_collNDE_transient,BOL4);
+[AVG.NDE.coll.sustained, ~, ~] = laminarmean(perm.sessions_collNDE_sustained,BOL4);
+[AVG.BIN.coll.transient, ~, ~] = laminarmean(perm.sessions_collBIN_transient,BOL4);
+[AVG.BIN.coll.sustained, ~, ~] = laminarmean(perm.sessions_collBIN_sustained,BOL4);
+[AVG.DI.coll.transient, ~, ~] = laminarmean(perm.sessions_collDI_transient,BOL4);
+[AVG.DI.coll.sustained, corticaldepth, N] = laminarmean(perm.sessions_collDI_sustained,BOL4);
+clear perm
+
+%% Variable: CSD
+
+% Step 1: Load variable
+clear i tmp subtractionDE
+for i = 1: length(fullFileName)
+tmp = load(fullFileName{i},'STIM');
+sessions.CSD(:,:,i) = tmp.STIM.bsl.CSD(1:651,:);
+end
+
+% Step 2: Permute matrix to work with align function
+
+perm.sessions_CSD = permute(sessions.CSD,[3 1 2]);
+
+% Step 3: Alignment
+
+[AVG.CSD, ~, ~] = laminarmean(perm.sessions_CSD,BOL4);
 
 
-%% Experimental
+%% Model calculations
+% QSM
 
-figure('Position', [148,73,1200,582]);
-subplot(3,3,1)
-hBar = bar([AVG.BIN.layers.transient.data(:,1) AVG.BIN.layers.sustained.data(:,1)],0.8,'grouped','FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+QSM.BIN.layers.full = sqrt((AVG.NDE.layers.full.data(:,:).^2) + (AVG.DE.layers.full.data(:,:).^2));
+QSM.BIN.layers.transient = sqrt((AVG.NDE.layers.transient.data(:,:).^2) + (AVG.DE.layers.transient.data(:,:).^2));
+QSM.BIN.layers.sustained = sqrt((AVG.NDE.layers.sustained.data(:,:).^2) + (AVG.DE.layers.sustained.data(:,:).^2));
+QSM.BIN.coll.transient = sqrt((AVG.NDE.coll.transient(:,:).^2) + (AVG.DE.coll.transient(:,:).^2));
+QSM.BIN.coll.sustained = sqrt((AVG.NDE.coll.sustained(:,:).^2) + (AVG.DE.coll.sustained(:,:).^2));
+QSM.DI.coll.DE22_NDE45.transient = sqrt((AVG.DE.coll.transient(2,:).^2) + (AVG.NDE.coll.transient(3,:).^2));
+QSM.DI.coll.DE22_NDE45.sustained = sqrt((AVG.DE.coll.sustained(2,:).^2) + (AVG.NDE.coll.sustained(3,:).^2));
+QSM.DI.coll.DE22_NDE90.transient = sqrt((AVG.DE.coll.transient(2,:).^2) + (AVG.NDE.coll.transient(4,:).^2));
+QSM.DI.coll.DE22_NDE90.sustained = sqrt((AVG.DE.coll.sustained(2,:).^2) + (AVG.NDE.coll.sustained(4,:).^2));
+QSM.DI.coll.DE90_NDE22.transient = sqrt((AVG.DE.coll.transient(4,:).^2) + (AVG.NDE.coll.transient(2,:).^2));
+QSM.DI.coll.DE90_NDE22.sustained = sqrt((AVG.DE.coll.sustained(4,:).^2) + (AVG.NDE.coll.sustained(2,:).^2));
+
+%% PLOT: Binned Layer Bar Graphs (DE vs BIN)
+% Transient
+
+contrast = [0 .22 .45 .9];
+figure('Position', [148,73,633,487]);
+clear i
+for i = 1:3
+subplot(3,3,i)
+bar(AVG.BIN.layers.transient.data(:,i),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
-errorbar([AVG.BIN.layers.transient.data(:,1) AVG.BIN.layers.sustained.data(:,1)], [AVG.BIN.layers.transient.error(:,1) AVG.BIN.layers.sustained.error(:,1)],'o','marker','none','color','k');
-bar([AVG.DE.layers.transient.data(:,1) AVG.DE.layers.sustained.data(:,1)],0.4,'grouped','FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
-errorbar([AVG.DE.layers.transient.data(:,1) AVG.DE.layers.sustained.data(:,1)], [AVG.DE.layers.transient.error(:,1) AVG.DE.layers.sustained.error(:,1)],'o','marker','none','color','k');
+errorbar(AVG.BIN.layers.transient.data(:,i),AVG.BIN.layers.transient.error(:,i),'o','marker','none','color','k');
+bar(AVG.DE.layers.transient.data(:,i),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+errorbar(AVG.DE.layers.transient.data(:,i),AVG.DE.layers.transient.error(:,i),'o','marker','none','color','k');
 set(gca,'box','off');
 ylim([-5 50]);
 xticklabels(contrast)
 xlabel('contrast')
 ylabel('percent change');
-title('Supragranular');
+if i == 1
+    title('Supragranular');
+elseif i == 2
+    title('Granular');
+else 
+    title('Infragranular');
+end
 hold off
+end
+
+clear i
+for i = 1:3
+subplot(3,3,i+3)
+bar((AVG.BIN.layers.transient.data(:,i)-AVG.DE.layers.transient.data(:,i)),0.8,'FaceColor',[0.3, .3, 0.3],'EdgeColor','k','LineWidth',0.8);
+hold on
+set(gca,'box','off');
+ylim([-5 20]);
+xticklabels(contrast)
+xlabel('contrast')
+ylabel('percent difference');
+hold off
+end
+
+for i = 1:3
+subplot(3,3,i+6)
+bar((AVG.BIN.layers.transient.data(:,i)-AVG.DE.layers.transient.data(:,i)) ...
+    ./ (AVG.DE.layers.transient.data(:,i)),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
+hold on
+set(gca,'box','off');
+ylim([-.2 1]);
+xticklabels(contrast)
+xlabel('contrast')
+ylabel('fold change');
+hold off
+end
+
+sgtitle(sprintf('Transient: Binocular vs monocular (DE) stimulation | %d sessions',length(fullFileName)),'Interpreter','none');
+
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('AVG_layers_DEvsBIN_transient'), '-jpg', '-transparent');
+
+%% PLOT: Binned Layer Bar Graphs (DE vs NDE)
+
+contrast = [0 .22 .45 .9];
+figure('Position', [148,73,633,487]);
+clear i
+for i = 1:3
+subplot(3,3,i)
+bar(AVG.DE.layers.transient.data(:,i),0.8,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+hold on
+errorbar(AVG.DE.layers.transient.data(:,i),AVG.DE.layers.transient.error(:,i),'o','marker','none','color','k');
+bar(AVG.NDE.layers.transient.data(:,i),0.4,'FaceColor',[.2, .2, .2],'EdgeColor','k','LineWidth',0.8);
+errorbar(AVG.NDE.layers.transient.data(:,i),AVG.NDE.layers.transient.error(:,i),'o','marker','none','color','k');
+set(gca,'box','off');
+ylim([-5 50]);
+xticklabels(contrast)
+xlabel('contrast')
+ylabel('percent change');
+if i == 1
+    title('Supragranular');
+elseif i == 2
+    title('Granular');
+else 
+    title('Infragranular');
+end
+hold off
+end
+
+clear i
+for i = 1:3
+subplot(3,3,i+3)
+bar((AVG.DE.layers.transient.data(:,i)-AVG.NDE.layers.transient.data(:,i)),0.8,'FaceColor',[0.3, .3, 0.3],'EdgeColor','k','LineWidth',0.8);
+hold on
+set(gca,'box','off');
+ylim([-5 20]);
+xticklabels(contrast)
+xlabel('contrast')
+ylabel('percent difference');
+hold off
+end
+
+for i = 1:3
+subplot(3,3,i+6)
+bar((AVG.DE.layers.transient.data(:,i)-AVG.NDE.layers.transient.data(:,i)) ...
+    ./ (AVG.NDE.layers.transient.data(:,i)),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
+hold on
+set(gca,'box','off');
+ylim([-.2 1]);
+xticklabels(contrast)
+xlabel('contrast')
+ylabel('fold change');
+hold off
+end
+
+sgtitle(sprintf('Transient: DE vs NDE stimulation | %d sessions',length(fullFileName)),'Interpreter','none');
+
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('AVG_layers_DEvsNDE_transient'), '-jpg', '-transparent');
+
+%% PLOT: Binned Layer Bar Graphs (DE+NDE and BIN+QSM)
+% Transient and Sustained
+
+labels = {0, .22, .45, .9,[],0,.22,.45,.9}; format bank;
+figure('Position', [148,73,1200,582]);
+clear i
+for i = 1:3
+subplot(2,3,i)
+bar([AVG.DE.layers.transient.data(:,i); NaN; AVG.DE.layers.sustained.data(:,i)],0.8,'grouped','FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+hold on
+errorbar([AVG.DE.layers.transient.data(:,i); [0]; AVG.DE.layers.sustained.data(:,i)], [AVG.DE.layers.transient.error(:,i); [0]; AVG.DE.layers.sustained.error(:,i)],'o','marker','none','color','k');
+bar([AVG.NDE.layers.transient.data(:,i); NaN; AVG.NDE.layers.sustained.data(:,i)],0.4,'grouped','FaceColor',[.22, 0.23, 0.22],'EdgeColor','k','LineWidth',0.8);
+errorbar([AVG.NDE.layers.transient.data(:,i); [0]; AVG.NDE.layers.sustained.data(:,i)], [AVG.NDE.layers.transient.error(:,i); [0]; AVG.NDE.layers.sustained.error(:,i)],'o','marker','none','color','k');
+set(gca,'box','off');
+ylim([-5 50]);
+xticklabels(labels);
+xlabel('contrast')
+ylabel('percent change');
+if i == 1
+    title('Supragranular');
+elseif i == 2
+    title('Granular');
+else 
+    title('Infragranular');
+end
+hold off
+end
+
+clear i
+for i = 1:3
+subplot(2,3,i+3)
+bar([AVG.BIN.layers.transient.data(:,i);NaN;AVG.BIN.layers.sustained.data(:,i)],0.8,'grouped','FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+hold on
+errorbar([AVG.BIN.layers.transient.data(:,i); [0]; AVG.BIN.layers.sustained.data(:,i)], [AVG.BIN.layers.transient.error(:,i); 0; AVG.BIN.layers.sustained.error(:,1)],'o','marker','none','color','k');
+bar([QSM.BIN.layers.transient(:,i);NaN;QSM.BIN.layers.sustained(:,i)],0.4,'FaceColor',[0.9, .3, 0.1],'linestyle','-.','EdgeColor','w','LineWidth',0.8);
+set(gca,'box','off');
+ylim([-5 50]);
+xticklabels(labels);
+xlabel('contrast')
+ylabel('percent change');
+hold off
+end
+
+sgtitle(sprintf('Quadratic Summation Model prediction for Binocular response\n Same contrast in both eyes | %d sessions',length(fullFileName)),'Interpreter','none');
+
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('AVG_DEvsNDEvsModelvsBIN_T&S'), '-jpg', '-transparent');
+
+%% PLOT: Collapsed lineplot (.22 DE .90 NDE + QSM predictions)
+% Transient and Sustained
+
+figure('position',[151,58.33333333333333,834.6666666666666,574.6666666666666]);
+subplot(2,4,1)
+plot(AVG.DE.coll.transient(2,:),corticaldepth,'Color',[0, 0.4470, 0.7410]);
+hold on 
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('.22 DE');
+legend('DE','Location','northeast','orientation','horizontal');
+hold off
+
+subplot(2,4,2)
+plot(AVG.NDE.coll.transient(4,:),corticaldepth,'Color',[.3 .2 .3]);
+hold on 
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('.90 NDE');
+legend('NDE','Location','northeast','orientation','vertical');
+hold off
+
+subplot(2,4,3)
+plot(AVG.DI.coll.transient(1,:),corticaldepth,'color','r');
+hold on 
+plot(QSM.DI.coll.DE22_NDE90.transient,corticaldepth,'-.','color','k');
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('QSM vs Binocular response');
+legend('BIN','QSM','Location','northeast','orientation','vertical');
+hold off
+
+h = subplot(2,4,4);
+bAVG_iCSD = filterCSD(AVG.CSD')';
+imagesc(-50:600,1:37,bAVG_iCSD');
+hold on
+colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
+colorbar; v = vline(30); set(v,'color','k','linestyle','-.','linewidth',.5);
+set(gca,'tickdir','in','ytick','');
+climit = max(abs(get(gca,'CLim'))*.7);
+set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
+plot([100 100], ylim,'k','linestyle','-.','linewidth',0.5)
+hline(28,'-.')
+title('CSD (All Trials)')
+xlabel('time (ms)')
+clrbar = colorbar; clrbar.Label.String = 'nA/mm^3'; 
+set(clrbar.Label,'rotation',270,'fontsize',8,'VerticalAlignment','middle');
+ylabel('<-- cortical depth -->');
+hold off
+
+subplot(2,4,5)
+plot(AVG.DE.coll.sustained(2,:),corticaldepth,'Color',[0, 0.4470, 0.7410]);
+hold on 
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('.22 DE');
+hold off
+
+subplot(2,4,6)
+plot(AVG.NDE.coll.sustained(4,:),corticaldepth,'Color',[.3 .2 .3]);
+hold on 
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('.90 NDE');
+hold off
+
+subplot(2,4,7)
+plot(AVG.DI.coll.sustained(1,:),corticaldepth,'color','r');
+hold on 
+plot(QSM.DI.coll.DE22_NDE90.sustained,corticaldepth,'-.','color','k');
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('QSM vs Binocular response');
+hold off
+
+h = subplot(2,4,8);
+bAVG_iCSD = filterCSD(AVG.CSD')';
+imagesc(-50:600,1:37,bAVG_iCSD');
+hold on
+colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
+colorbar; v = vline(101); set(v,'color','k','linestyle','-.','linewidth',.5);
+set(gca,'tickdir','in','ytick','');  
+climit = max(abs(get(gca,'CLim'))*.7);
+set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
+plot([450 450], ylim,'k','linestyle','-.','linewidth',0.5)
+hline(28,'-.')
+title('CSD (All Trials)')
+xlabel('time (ms)')
+clrbar = colorbar; clrbar.Label.String = 'nA/mm^3'; 
+set(clrbar.Label,'rotation',270,'fontsize',8,'VerticalAlignment','middle');
+ylabel('<-- cortical depth -->');
+hold off
+
+sgtitle(sprintf('Session-averaged (N = %d) Quadratic Summation Model prediction \n Low contrast in DE | High contrast in NDE',length(fullFileName)));
+
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('AVG_coll_DE22_NDE90'), '-jpg', '-transparent');
+
+%% DE .90 NDE .22 + QSM prediction
+figure('position',[151,58.33333333333333,834.6666666666666,574.6666666666666]);
+
+subplot(2,4,1)
+plot(AVG.DE.coll.transient(4,:),corticaldepth,'Color',[0, 0.4470, 0.7410]);
+hold on 
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('.90 DE');
+legend('DE','Location','northeast','orientation','horizontal');
+hold off
+
+subplot(2,4,2)
+plot(AVG.NDE.coll.transient(2,:),corticaldepth,'Color',[.3 .2 .3]);
+hold on 
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('.22 NDE');
+legend('NDE','Location','northeast','orientation','vertical');
+hold off
+
+subplot(2,4,3)
+plot(AVG.DI.coll.transient(5,:),corticaldepth,'color','r');
+hold on 
+plot(QSM.DI.coll.DE90_NDE22.transient,corticaldepth,'-.','color','k');
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('QSM vs Binocular response');
+legend('BIN','QSM','Location','northeast','orientation','vertical');
+hold off
+
+h = subplot(2,4,4);
+bAVG_iCSD = filterCSD(AVG.CSD')';
+imagesc(-50:600,1:37,bAVG_iCSD');
+hold on
+colormap(flipud(colormap('jet'))); 
+colorbar; v = vline(30); set(v,'color','k','linestyle','-.','linewidth',.5);
+set(gca,'tickdir','in','ytick','');
+climit = max(abs(get(gca,'CLim'))*.7);
+set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
+plot([100 100], ylim,'k','linestyle','-.','linewidth',0.5)
+hline(28,'-.')
+title('CSD (All Trials)')
+xlabel('time (ms)')
+clrbar = colorbar; clrbar.Label.String = 'nA/mm^3'; 
+set(clrbar.Label,'rotation',270,'fontsize',8,'VerticalAlignment','middle');
+ylabel('<-- cortical depth -->');
+hold off
+
+subplot(2,4,5)
+plot(AVG.DE.coll.sustained(4,:),corticaldepth,'Color',[0, 0.4470, 0.7410]);
+hold on 
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('.90 DE');
+hold off
+
+subplot(2,4,6)
+plot(AVG.NDE.coll.sustained(2,:),corticaldepth,'Color',[.3 .2 .3]);
+hold on 
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('.22 NDE');
+hold off
+
+subplot(2,4,7)
+plot(AVG.DI.coll.sustained(5,:),corticaldepth,'color','r');
+hold on 
+plot(QSM.DI.coll.DE90_NDE22.sustained,corticaldepth,'-.','color','k');
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('QSM vs Binocular response');
+hold off
+
+h = subplot(2,4,8);
+bAVG_iCSD = filterCSD(AVG.CSD')';
+imagesc(-50:600,1:37,bAVG_iCSD');
+hold on
+colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
+colorbar; v = vline(101); set(v,'color','k','linestyle','-.','linewidth',.5);
+set(gca,'tickdir','in','ytick','');  
+climit = max(abs(get(gca,'CLim'))*.7);
+set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
+plot([450 450], ylim,'k','linestyle','-.','linewidth',0.5)
+hline(28,'-.')
+title('CSD (All Trials)')
+xlabel('time (ms)')
+clrbar = colorbar; clrbar.Label.String = 'nA/mm^3'; 
+set(clrbar.Label,'rotation',270,'fontsize',8,'VerticalAlignment','middle');
+ylabel('<-- cortical depth -->');
+hold off
+
+sgtitle(sprintf('Session-averaged (N = %d) Quadratic Summation Model prediction \n High contrast in DE | Low contrast in NDE',length(fullFileName)));
+
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('AVG_coll_DE90_NDE22'), '-jpg', '-transparent');
+
+%% PLOT: Collapsed lineplots (DE and NDE same contrast, QSM prediction)
+cIndex = 3;
+switch cIndex
+    case 2
+        cLevel = '.22';
+    case 3
+        cLevel = '.45';
+    case 4
+        cLevel = '.90';
+end
+
+figure('position',[151,58.33333333333333,834.6666666666666,574.6666666666666]);
+subplot(2,4,1)
+plot(AVG.DE.coll.transient(cIndex,:),corticaldepth,'Color',[0, 0.4470, 0.7410]);
+hold on 
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title(sprintf('%s DE',cLevel));
+legend('DE','Location','northeast','orientation','horizontal');
+hold off
+
+subplot(2,4,2)
+plot(AVG.NDE.coll.transient(cIndex,:),corticaldepth,'Color',[.3 .2 .3]);
+hold on 
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title(sprintf('%s NDE',cLevel));
+legend('NDE','Location','northeast','orientation','vertical');
+hold off
+
+subplot(2,4,3)
+plot(AVG.BIN.coll.transient(cIndex,:),corticaldepth,'color','r');
+hold on 
+plot(QSM.BIN.coll.transient(cIndex,:),corticaldepth,'-.','color','k');
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('QSM vs Binocular response');
+legend('BIN','QSM','Location','northeast','orientation','vertical');
+hold off
+
+h = subplot(2,4,4);
+bAVG_iCSD = filterCSD(AVG.CSD')';
+imagesc(-50:600,1:37,bAVG_iCSD');
+hold on
+colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
+colorbar; v = vline(30); set(v,'color','k','linestyle','-.','linewidth',.5);
+set(gca,'tickdir','in','ytick','');
+climit = max(abs(get(gca,'CLim'))*.7);
+set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
+plot([100 100], ylim,'k','linestyle','-.','linewidth',0.5)
+hline(28,'-.')
+title('CSD (All Trials)')
+xlabel('time (ms)')
+clrbar = colorbar; clrbar.Label.String = 'nA/mm^3'; 
+set(clrbar.Label,'rotation',270,'fontsize',8,'VerticalAlignment','middle');
+ylabel('<-- cortical depth -->');
+hold off
+
+subplot(2,4,5)
+plot(AVG.DE.coll.sustained(cIndex,:),corticaldepth,'Color',[0, 0.4470, 0.7410]);
+hold on 
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title(sprintf('%s DE',cLevel));
+hold off
+
+subplot(2,4,6)
+plot(AVG.NDE.coll.sustained(cIndex,:),corticaldepth,'Color',[.3 .2 .3]);
+hold on 
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title(sprintf('%s NDE',cLevel));
+hold off
+
+subplot(2,4,7)
+plot(AVG.BIN.coll.sustained(cIndex,:),corticaldepth,'color','r');
+hold on 
+plot(QSM.BIN.coll.sustained(cIndex,:),corticaldepth,'-.','color','k');
+grid on
+xlim([-5 50]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('QSM vs Binocular response');
+hold off
+
+h = subplot(2,4,8);
+bAVG_iCSD = filterCSD(AVG.CSD')';
+imagesc(-50:600,1:37,bAVG_iCSD');
+hold on
+colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
+colorbar; v = vline(101); set(v,'color','k','linestyle','-.','linewidth',.5);
+set(gca,'tickdir','in','ytick','');  
+climit = max(abs(get(gca,'CLim'))*.7);
+set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
+plot([450 450], ylim,'k','linestyle','-.','linewidth',0.5)
+hline(28,'-.')
+title('CSD (All Trials)')
+xlabel('time (ms)')
+clrbar = colorbar; clrbar.Label.String = 'nA/mm^3'; 
+set(clrbar.Label,'rotation',270,'fontsize',8,'VerticalAlignment','middle');
+ylabel('<-- cortical depth -->');
+hold off
+
+sgtitle(sprintf('Session-averaged (N = %d) Quadratic Summation Model prediction \n Medium contrast in both eyes',length(fullFileName)));
+
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig(sprintf('AVG_coll_%s_botheyes',cLevel), '-jpg', '-transparent');
+
+
+%% Save Workspace
+
+cd('D:\')
+save(sprintf('session-wide'),'AVG','QSM','BOL4','sessions');
+
+fprintf('Workspace saved');
