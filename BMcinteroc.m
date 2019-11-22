@@ -247,6 +247,7 @@ STIM.avg.CSD = mean(STIM.CSD,3);
 
 % These aren't currently used because I'm about to convert to percent
 % change from baseline (next section). 
+
 [STIM.bsl.LFP] = BMbasecorrect(STIM.avg.LFP); 
 [STIM.bsl.aMUA] = BMbasecorrect(STIM.avg.aMUA); 
 [STIM.bsl.CSD] = BMbasecorrect(STIM.avg.CSD);
@@ -264,7 +265,8 @@ clear t c
 for t = 1:size(STIM.aMUA,3)
     for c = 1:size(STIM.aMUA,2)
         STIM.zMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(std(STIM.aMUA(25:75,c,t))); %z score
-        STIM.cMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(mean(STIM.aMUA(25:75,c,t)))*100; %percent change
+%         STIM.cMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(mean(STIM.aMUA(25:75,c,t)))*100; %percent change
+        STIM.cMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t))); % baseline corrected raw
     end
 end
 
@@ -328,8 +330,8 @@ for m = 1:size(STIM.conditions.DE,1)
 end
 
 clear m
-for m = 1:size(STIM.conditions.DI,1)
-    STIM.DI.exclusive.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.DI.exclusive(m,:)),3);
+for m = 1:size(STIM.conditions.DI_exclusive,1)
+    STIM.DI_exclusive.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.DI_exclusive(m,:)),3);
 end
 
 % CSD by condition
@@ -538,7 +540,7 @@ for c = 1:3
     hold on
     plot(fliplr(STIM.BIN.coll.transient(c+1,:)),STIM.channels,'.-r','linewidth',0.5);
     hline(STIM.channels(end)-STIM.laminae.gran(end),'-.')
-    xlim([-10 80])
+    xlim([-2 10])
     yticks('')
     yticklabels(fliplr(1:nct))
     ylim([1 nct])
@@ -764,7 +766,6 @@ STIM.calc.layers.subtractionDE.sustained = ((STIM.BIN.layers.sustained(:,:)-STIM
 STIM.calc.layers.fchange.full = ((STIM.BIN.layers.full(:,:)-STIM.DE.layers.full(:,:))./(STIM.DE.layers.full(:,:)));
 STIM.calc.layers.fchange.transient = ((STIM.BIN.layers.transient(:,:)-STIM.DE.layers.transient(:,:))./(STIM.DE.layers.transient(:,:)));
 STIM.calc.layers.fchange.sustained = ((STIM.BIN.layers.sustained(:,:)-STIM.DE.layers.sustained(:,:))./(STIM.DE.layers.sustained(:,:)));
-
 
 
 figure('Position', [148,73,633,487]);
