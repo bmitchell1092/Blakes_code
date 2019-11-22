@@ -146,7 +146,7 @@ perm.sessions_CSD = permute(sessions.CSD,[3 1 2]);
 
 
 %% Model calculations
-% QSM
+% Quadratic summation Model: sqrt((cL)^2 + (cR)^2)
 
 QSM.BIN.layers.full = sqrt((AVG.NDE.layers.full.data(:,:).^2) + (AVG.DE.layers.full.data(:,:).^2));
 QSM.BIN.layers.transient = sqrt((AVG.NDE.layers.transient.data(:,:).^2) + (AVG.DE.layers.transient.data(:,:).^2));
@@ -157,8 +157,34 @@ QSM.DI.coll.DE22_NDE45.transient = sqrt((AVG.DE.coll.transient(2,:).^2) + (AVG.N
 QSM.DI.coll.DE22_NDE45.sustained = sqrt((AVG.DE.coll.sustained(2,:).^2) + (AVG.NDE.coll.sustained(3,:).^2));
 QSM.DI.coll.DE22_NDE90.transient = sqrt((AVG.DE.coll.transient(2,:).^2) + (AVG.NDE.coll.transient(4,:).^2));
 QSM.DI.coll.DE22_NDE90.sustained = sqrt((AVG.DE.coll.sustained(2,:).^2) + (AVG.NDE.coll.sustained(4,:).^2));
+QSM.DI.coll.DE45_NDE22.transient = sqrt((AVG.DE.coll.transient(3,:).^2) + (AVG.NDE.coll.transient(2,:).^2));
+QSM.DI.coll.DE45_NDE22.sustained = sqrt((AVG.DE.coll.sustained(3,:).^2) + (AVG.NDE.coll.sustained(2,:).^2));
+QSM.DI.coll.DE45_NDE90.transient = sqrt((AVG.DE.coll.transient(3,:).^2) + (AVG.NDE.coll.transient(4,:).^2));
+QSM.DI.coll.DE45_NDE90.sustained = sqrt((AVG.DE.coll.sustained(3,:).^2) + (AVG.NDE.coll.sustained(4,:).^2));
 QSM.DI.coll.DE90_NDE22.transient = sqrt((AVG.DE.coll.transient(4,:).^2) + (AVG.NDE.coll.transient(2,:).^2));
 QSM.DI.coll.DE90_NDE22.sustained = sqrt((AVG.DE.coll.sustained(4,:).^2) + (AVG.NDE.coll.sustained(2,:).^2));
+QSM.DI.coll.DE90_NDE45.transient = sqrt((AVG.DE.coll.transient(4,:).^2) + (AVG.NDE.coll.transient(3,:).^2));
+QSM.DI.coll.DE90_NDE45.sustained = sqrt((AVG.DE.coll.sustained(4,:).^2) + (AVG.NDE.coll.sustained(3,:).^2));
+
+
+% Linear summation model (LSM): (cL + cR) 
+LSM.BIN.layers.full = AVG.NDE.layers.full.data(:,:) + AVG.DE.layers.full.data(:,:);
+LSM.BIN.layers.transient = AVG.NDE.layers.transient.data(:,:) + AVG.DE.layers.transient.data(:,:);
+LSM.BIN.layers.sustained = AVG.NDE.layers.sustained.data(:,:) + AVG.DE.layers.sustained.data(:,:);
+LSM.BIN.coll.transient = AVG.NDE.coll.transient(:,:) + AVG.DE.coll.transient(:,:);
+LSM.BIN.coll.sustained = AVG.NDE.coll.sustained(:,:) + AVG.DE.coll.sustained(:,:);
+LSM.DI.coll.DE22_NDE45.transient = AVG.DE.coll.transient(2,:) + AVG.NDE.coll.transient(3,:);
+LSM.DI.coll.DE22_NDE45.sustained = AVG.DE.coll.sustained(2,:) + AVG.NDE.coll.sustained(3,:);
+LSM.DI.coll.DE22_NDE90.transient = AVG.DE.coll.transient(2,:) + AVG.NDE.coll.transient(4,:);
+LSM.DI.coll.DE22_NDE90.sustained = AVG.DE.coll.sustained(2,:) + AVG.NDE.coll.sustained(4,:);
+LSM.DI.coll.DE45_NDE22.transient = AVG.DE.coll.transient(3,:) + AVG.NDE.coll.transient(2,:);
+LSM.DI.coll.DE45_NDE22.sustained = AVG.DE.coll.sustained(3,:) + AVG.NDE.coll.sustained(2,:);
+LSM.DI.coll.DE45_NDE90.transient = AVG.DE.coll.transient(3,:) + AVG.NDE.coll.transient(4,:);
+LSM.DI.coll.DE45_NDE90.sustained = AVG.DE.coll.sustained(3,:) + AVG.NDE.coll.sustained(4,:);
+LSM.DI.coll.DE90_NDE22.transient = AVG.DE.coll.transient(4,:) + AVG.NDE.coll.transient(2,:);
+LSM.DI.coll.DE90_NDE22.sustained = AVG.DE.coll.sustained(4,:) + AVG.NDE.coll.sustained(2,:);
+LSM.DI.coll.DE90_NDE45.transient = AVG.DE.coll.transient(4,:) + AVG.NDE.coll.transient(3,:);
+LSM.DI.coll.DE90_NDE45.sustained = AVG.DE.coll.sustained(4,:) + AVG.NDE.coll.sustained(3,:);
 
 %% PLOT: Binned Layer Bar Graphs (DE vs BIN)
 % Transient
@@ -168,11 +194,11 @@ figure('Position', [148,73,633,487]);
 clear i
 for i = 1:3
 subplot(3,3,i)
-bar(AVG.BIN.layers.transient.data(:,i),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+bar(AVG.BIN.layers.transient.data(2:4,i),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
-errorbar(AVG.BIN.layers.transient.data(:,i),AVG.BIN.layers.transient.error(:,i),'o','marker','none','color','k');
-bar(AVG.DE.layers.transient.data(:,i),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
-errorbar(AVG.DE.layers.transient.data(:,i),AVG.DE.layers.transient.error(:,i),'o','marker','none','color','k');
+errorbar(AVG.BIN.layers.transient.data(2:4,i),AVG.BIN.layers.transient.error(2:4,i),'o','marker','none','color','k');
+%bar(AVG.DE.layers.transient.data(:,i),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+%errorbar(AVG.DE.layers.transient.data(:,i),AVG.DE.layers.transient.error(:,i),'o','marker','none','color','k');
 set(gca,'box','off');
 ylim([-5 50]);
 xticklabels(contrast)
@@ -354,7 +380,7 @@ legend('NDE','Location','northeast','orientation','vertical');
 hold off
 
 subplot(2,4,3)
-plot(AVG.DI.coll.transient(1,:),corticaldepth,'color','r');
+plot(AVG.DI.coll.transient(2,:),corticaldepth,'color','r');
 hold on 
 plot(QSM.DI.coll.DE22_NDE90.transient,corticaldepth,'-.','color','k');
 grid on
@@ -407,7 +433,7 @@ title('.90 NDE');
 hold off
 
 subplot(2,4,7)
-plot(AVG.DI.coll.sustained(1,:),corticaldepth,'color','r');
+plot(AVG.DI.coll.sustained(2,:),corticaldepth,'color','r');
 hold on 
 plot(QSM.DI.coll.DE22_NDE90.sustained,corticaldepth,'-.','color','k');
 grid on
@@ -556,8 +582,8 @@ sgtitle(sprintf('Session-averaged (N = %d) Quadratic Summation Model prediction 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('AVG_coll_DE90_NDE22'), '-jpg', '-transparent');
 
-%% PLOT: Collapsed lineplots (DE and NDE same contrast, QSM prediction)
-cIndex = 3;
+%% PLOT: Collapsed lineplots (Same contrast, QSM prediction)
+cIndex = 4;
 switch cIndex
     case 2
         cLevel = '.22';
@@ -572,8 +598,8 @@ subplot(2,4,1)
 plot(AVG.DE.coll.transient(cIndex,:),corticaldepth,'Color',[0, 0.4470, 0.7410]);
 hold on 
 grid on
-xlim([-5 50]);
-hline(0,'-.','BOL4')
+xlim([-5 70]);
+hline(0,':','BOL4')
 ylim([-9 27])
 xlabel('Percent change');
 title(sprintf('%s DE',cLevel));
@@ -584,8 +610,8 @@ subplot(2,4,2)
 plot(AVG.NDE.coll.transient(cIndex,:),corticaldepth,'Color',[.3 .2 .3]);
 hold on 
 grid on
-xlim([-5 50]);
-hline(0,'-.','BOL4')
+xlim([-5 70]);
+hline(0,':','BOL4')
 ylim([-9 27])
 xlabel('Percent change');
 title(sprintf('%s NDE',cLevel));
@@ -596,8 +622,156 @@ subplot(2,4,3)
 plot(AVG.BIN.coll.transient(cIndex,:),corticaldepth,'color','r');
 hold on 
 plot(QSM.BIN.coll.transient(cIndex,:),corticaldepth,'-.','color','k');
+plot(LSM.BIN.coll.transient(cIndex,:),corticaldepth,'linewidth',.6,'linestyle','--','color',[.35 .4 .3]);
 grid on
-xlim([-5 50]);
+xlim([-5 70]);
+hline(0,':','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('QSM vs Binocular response');
+legend('BIN','QSM','LSM','Location','northeast','orientation','vertical');
+hold off
+
+h = subplot(2,4,4);
+bAVG_iCSD = filterCSD(AVG.CSD')';
+imagesc(-50:600,1:37,bAVG_iCSD');
+hold on
+colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
+colorbar; v = vline(30); set(v,'color','k','linestyle','-.','linewidth',.5);
+set(gca,'tickdir','in','ytick','');
+climit = max(abs(get(gca,'CLim'))*.7);
+set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
+plot([100 100], ylim,'k','linestyle','-.','linewidth',0.5)
+hline(28,':')
+title('CSD (All Trials)')
+xlabel('time (ms)')
+clrbar = colorbar; clrbar.Label.String = 'nA/mm^3'; 
+set(clrbar.Label,'rotation',270,'fontsize',8,'VerticalAlignment','middle');
+ylabel('<-- cortical depth -->');
+hold off
+
+subplot(2,4,5)
+plot(AVG.DE.coll.sustained(cIndex,:),corticaldepth,'Color',[0, 0.4470, 0.7410]);
+hold on 
+grid on
+xlim([-5 70]);
+hline(0,':','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title(sprintf('%s DE',cLevel));
+legend('DE','Location','northeast','orientation','horizontal');
+hold off
+
+subplot(2,4,6)
+plot(AVG.NDE.coll.sustained(cIndex,:),corticaldepth,'Color',[.3 .2 .3]);
+hold on 
+grid on
+xlim([-5 70]);
+hline(0,':','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title(sprintf('%s NDE',cLevel));
+legend('NDE','Location','northeast','orientation','vertical');
+hold off
+
+subplot(2,4,7)
+plot(AVG.BIN.coll.sustained(cIndex,:),corticaldepth,'color','r');
+hold on 
+plot(QSM.BIN.coll.sustained(cIndex,:),corticaldepth,'-.','color','k');
+plot(LSM.BIN.coll.sustained(cIndex,:),corticaldepth,'linewidth',.6,'linestyle','--','color',[.35 .4 .3]);
+grid on
+xlim([-5 70]);
+hline(0,':','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title('QSM vs Binocular response');
+legend('BIN','QSM','LSM','Location','northeast','orientation','vertical');
+hold off
+
+h = subplot(2,4,8);
+bAVG_iCSD = filterCSD(AVG.CSD')';
+imagesc(-50:600,1:37,bAVG_iCSD');
+hold on
+colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
+colorbar; v = vline(101); set(v,'color','k','linestyle','-.','linewidth',.5);
+set(gca,'tickdir','in','ytick','');  
+climit = max(abs(get(gca,'CLim'))*.7);
+set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
+plot([450 450], ylim,'k','linestyle','-.','linewidth',0.5)
+hline(28,'-.')
+title('CSD (All Trials)')
+xlabel('time (ms)')
+clrbar = colorbar; clrbar.Label.String = 'nA/mm^3'; 
+set(clrbar.Label,'rotation',270,'fontsize',8,'VerticalAlignment','middle');
+ylabel('<-- cortical depth -->');
+hold off
+
+sgtitle(sprintf('Session-averaged (N = %d) Quadratic Summation Model prediction \n %s contrast in DE eye | %s contrast in NDE eye',length(fullFileName),cLevel,cLevel));
+
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('AVG_QSMcoll_%s_botheyes',cLevel), '-jpg', '-transparent');
+
+%% PLOT: Collapsed lineplots (Dichoptic contrasts, QSM prediction)
+% 2 = [.22], 3 = [.45], 4 = [.90]
+cDE = 3;
+cNDE = 4;
+% 1 = DE22NDE45, 2 = DE22NDE90, 3 = DE45NDE22, 4 = DE45NDE90
+% 5 = DE90NDE22, 6 = DE90NDE45
+di = 4;
+
+switch cDE
+    case 2
+        DELevel = '.22';
+    case 3
+        DELevel = '.45';
+    case 4
+        DELevel = '.90';
+end
+
+switch cNDE
+    case 2
+        NDELevel = '.22';
+    case 3
+        NDELevel = '.45';
+    case 4
+        NDELevel = '.90';
+end
+
+QSMdifields = fieldnames(QSM.DI.coll);
+LSMdifields = fieldnames(LSM.DI.coll);
+
+figure('position',[151,58.33333333333333,834.6666666666666,574.6666666666666]);
+subplot(2,4,1)
+plot(AVG.DE.coll.transient(cDE,:),corticaldepth,'Color',[0, 0.4470, 0.7410]);
+hold on 
+grid on
+xlim([-5 70]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title(sprintf('%s DE',DELevel));
+legend('DE','Location','northeast','orientation','horizontal');
+hold off
+
+subplot(2,4,2)
+plot(AVG.NDE.coll.transient(cNDE,:),corticaldepth,'Color',[.3 .2 .3]);
+hold on 
+grid on
+xlim([-5 70]);
+hline(0,'-.','BOL4')
+ylim([-9 27])
+xlabel('Percent change');
+title(sprintf('%s NDE',NDELevel));
+legend('NDE','Location','northeast','orientation','vertical');
+hold off
+
+subplot(2,4,3)
+plot(AVG.DI.coll.transient(di,:),corticaldepth,'color','r');
+hold on 
+plot(QSM.DI.coll.(QSMdifields{di}).transient,corticaldepth,'-.','color','k');
+plot(LSM.DI.coll.(LSMdifields{di}).transient,corticaldepth,'linewidth',.6,'linestyle','--','color',[.35 .4 .3]);
+grid on
+xlim([-5 70]);
 hline(0,'-.','BOL4')
 ylim([-9 27])
 xlabel('Percent change');
@@ -624,33 +798,34 @@ ylabel('<-- cortical depth -->');
 hold off
 
 subplot(2,4,5)
-plot(AVG.DE.coll.sustained(cIndex,:),corticaldepth,'Color',[0, 0.4470, 0.7410]);
+plot(AVG.DE.coll.sustained(cDE,:),corticaldepth,'Color',[0, 0.4470, 0.7410]);
 hold on 
 grid on
-xlim([-5 50]);
+xlim([-5 70]);
 hline(0,'-.','BOL4')
 ylim([-9 27])
 xlabel('Percent change');
-title(sprintf('%s DE',cLevel));
+title(sprintf('%s DE',DELevel));
 hold off
 
 subplot(2,4,6)
-plot(AVG.NDE.coll.sustained(cIndex,:),corticaldepth,'Color',[.3 .2 .3]);
+plot(AVG.NDE.coll.sustained(cNDE,:),corticaldepth,'Color',[.3 .2 .3]);
 hold on 
 grid on
-xlim([-5 50]);
+xlim([-5 70]);
 hline(0,'-.','BOL4')
 ylim([-9 27])
 xlabel('Percent change');
-title(sprintf('%s NDE',cLevel));
+title(sprintf('%s NDE',NDELevel));
 hold off
 
 subplot(2,4,7)
-plot(AVG.BIN.coll.sustained(cIndex,:),corticaldepth,'color','r');
+plot(AVG.DI.coll.sustained(di,:),corticaldepth,'color','r');
 hold on 
-plot(QSM.BIN.coll.sustained(cIndex,:),corticaldepth,'-.','color','k');
+plot(QSM.DI.coll.(QSMdifields{di}).sustained,corticaldepth,'-.','color','k');
+plot(LSM.DI.coll.(LSMdifields{di}).sustained,corticaldepth,'linewidth',.6,'linestyle','--','color',[.35 .4 .3]);
 grid on
-xlim([-5 50]);
+xlim([-5 70]);
 hline(0,'-.','BOL4')
 ylim([-9 27])
 xlabel('Percent change');
@@ -675,15 +850,18 @@ set(clrbar.Label,'rotation',270,'fontsize',8,'VerticalAlignment','middle');
 ylabel('<-- cortical depth -->');
 hold off
 
-sgtitle(sprintf('Session-averaged (N = %d) Quadratic Summation Model prediction \n Medium contrast in both eyes',length(fullFileName)));
+sgtitle(sprintf('Session-averaged (N = %d) Quadratic Summation Model prediction \n %s contrast in DE eye | %s contrast in NDE eye',length(fullFileName),DELevel,NDELevel));
 
-% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-% export_fig(sprintf('AVG_coll_%s_botheyes',cLevel), '-jpg', '-transparent');
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('AVG_QSMcoll_%sDE%sNDE',DELevel,NDELevel), '-jpg', '-transparent');
 
 
 %% Save Workspace
 
 cd('D:\')
-save(sprintf('session-wide'),'AVG','QSM','BOL4','sessions');
+save(sprintf('session-wide'),'AVG','QSM','BOL4','LSM','sessions','corticaldepth');
+
+cd('C:/users/bmitc/Documents/MATLAB/workspaces/'); 
+save(sprintf('session-wide'),'AVG','QSM','BOL4','LSM','sessions','corticaldepth');
 
 fprintf('Workspace saved');
