@@ -235,9 +235,9 @@ offset = round(((STIM.offsets(1)-STIM.onsets(1))/(30)),0); % stimulus offset as 
 pre   = -50; % 50ms before stim onset
 post  = (round(10^-2*offset)/10^-2)+100; % ~100 ms after stim offset
 
-STIM.LFP  = trigData(LFP,STIM.onsetsdown,-pre,post); %pre variable is in absolute units 
-STIM.CSD  = trigData(CSD,STIM.onsetsdown,-pre,post); 
-STIM.aMUA = trigData(MUA,STIM.onsetsdown,-pre,post); 
+STIM.LFP.raw  = trigData(LFP,STIM.onsetsdown,-pre,post); %pre variable is in absolute units 
+STIM.CSD.raw  = trigData(CSD,STIM.onsetsdown,-pre,post); 
+STIM.aMUA.raw = trigData(MUA,STIM.onsetsdown,-pre,post); 
 
 %% Averaging across trials & baseline correct
 clear avg
@@ -258,15 +258,16 @@ STIM.avg.CSD = mean(STIM.CSD,3);
 
 % pre-allocate
 clear cMUA
-STIM.cMUA = nan(size(STIM.aMUA,1),size(STIM.aMUA,2),size(STIM.aMUA,3));
-STIM.zMUA = nan(size(STIM.aMUA,1),size(STIM.aMUA,2),size(STIM.aMUA,3));
+STIM.aMUA.pc = nan(size(STIM.aMUA.raw,1),size(STIM.aMUA.raw,2),size(STIM.aMUA.raw,3));
+STIM.aMUA.z = nan(size(STIM.aMUA.raw,1),size(STIM.aMUA.raw,2),size(STIM.aMUA.raw,3));
+STIM.aMUA.bsl = nan(size(STIM.aMUA.raw,1),size(STIM.aMUA.raw,2),size(STIM.aMUA.raw,3));
 % aMUA conversion to either z-score or percent change
 clear t c
 for t = 1:size(STIM.aMUA,3)
     for c = 1:size(STIM.aMUA,2)
-        STIM.zMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(std(STIM.aMUA(25:75,c,t))); %z score
-%         STIM.cMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(mean(STIM.aMUA(25:75,c,t)))*100; %percent change
-        STIM.cMUA(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t))); % baseline corrected raw
+        STIM.aMUA.z(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(std(STIM.aMUA(25:75,c,t))); %z score
+        STIM.aMUA.pc(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(mean(STIM.aMUA(25:75,c,t)))*100; %percent change
+        STIM.aMUA.bsl(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t))); % baseline corrected raw
     end
 end
 
