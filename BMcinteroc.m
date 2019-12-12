@@ -25,7 +25,7 @@ addpath(genpath(npmkdir))
 addpath(genpath(nbanalysisdir))
 addpath(genpath(datadir))
 
-BRdatafile = '160505_E_mcosinteroc002'; 
+BRdatafile = '160510_E_mcosinteroc001'; 
 filename = [datadir BRdatafile];
 
 %% Define layers by contact (informed by datalogs)
@@ -205,8 +205,7 @@ for ch = 1:length(NeuralLabels)
     
 end
 
-% not 100% positive that this is working as intended. Though the datalog
-% for layers does appear to match the resulting CSD 
+% sort the electrode contacts
 switch sortdirection
     case 'ascending'
         MUA = MUA(:,idx);
@@ -241,33 +240,33 @@ STIM.aMUA.raw = trigData(MUA,STIM.onsetsdown,-pre,post);
 
 %% Averaging across trials & baseline correct
 clear avg
-STIM.avg.LFP = mean(STIM.LFP,3);
-STIM.avg.aMUA = mean(STIM.aMUA,3);
-STIM.avg.CSD = mean(STIM.CSD,3);
+STIM.avg.LFP = mean(STIM.LFP.raw,3);
+STIM.avg.aMUA = mean(STIM.aMUA.raw,3);
+STIM.avg.CSD = mean(STIM.CSD.raw,3);
 
 % These aren't currently used because I'm about to convert to percent
 % change from baseline (next section). 
 
-[STIM.bsl.LFP] = BMbasecorrect(STIM.avg.LFP); 
-[STIM.bsl.aMUA] = BMbasecorrect(STIM.avg.aMUA); 
-[STIM.bsl.CSD] = BMbasecorrect(STIM.avg.CSD);
+[STIM.LFP.bsl] = BMbasecorrect(STIM.avg.LFP); 
+%[STIM.aMUA.bsl] = BMbasecorrect(STIM.avg.aMUA); 
+[STIM.CSD.bsl] = BMbasecorrect(STIM.avg.CSD);
 
 %% Data conversion 
 % Converting the aMUA raw neural response to either percent change from
 % baseline or z score (baseline as Xbar). 
 
 % pre-allocate
-clear cMUA
 STIM.aMUA.pc = nan(size(STIM.aMUA.raw,1),size(STIM.aMUA.raw,2),size(STIM.aMUA.raw,3));
 STIM.aMUA.z = nan(size(STIM.aMUA.raw,1),size(STIM.aMUA.raw,2),size(STIM.aMUA.raw,3));
 STIM.aMUA.bsl = nan(size(STIM.aMUA.raw,1),size(STIM.aMUA.raw,2),size(STIM.aMUA.raw,3));
-% aMUA conversion to either z-score or percent change
+% aMUA conversion to either z-score, percent change, or just baseline
+% corrected raw.
 clear t c
-for t = 1:size(STIM.aMUA,3)
-    for c = 1:size(STIM.aMUA,2)
-        STIM.aMUA.z(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(std(STIM.aMUA(25:75,c,t))); %z score
-        STIM.aMUA.pc(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t)))./(mean(STIM.aMUA(25:75,c,t)))*100; %percent change
-        STIM.aMUA.bsl(:,c,t) = (STIM.aMUA(:,c,t)-mean(STIM.aMUA(25:75,c,t))); % baseline corrected raw
+for t = 1:size(STIM.aMUA.raw,3)
+    for c = 1:size(STIM.aMUA.raw,2)
+        STIM.aMUA.z(:,c,t) = (STIM.aMUA.raw(:,c,t)-mean(STIM.aMUA.raw(25:75,c,t)))./(std(STIM.aMUA.raw(25:75,c,t))); %z score
+        STIM.aMUA.pc(:,c,t) = (STIM.aMUA.raw(:,c,t)-mean(STIM.aMUA.raw(25:75,c,t)))./(mean(STIM.aMUA.raw(25:75,c,t)))*100; %percent change
+        STIM.aMUA.bsl(:,c,t) = (STIM.aMUA.raw(:,c,t)-mean(STIM.aMUA.raw(25:75,c,t))); % baseline corrected raw
     end
 end
 
@@ -275,44 +274,31 @@ end
 % This is to create structures for the different conditions (including
 % contrast levels and eye to which stimulus was shown. 
 
-STIM.levels = unique(STIM.contrast);  % variable that contains all contrast levels
-clear STIM.BINconditions STIM.DEconditions STIM.NDEconditions
-clear i STIM.conditions.DE
+STIM.levels = unique(STIM.contrast);  % retrieves unique contrast levels
+STIM.ori = unique(STIM.tilt); % retrieves unique orientations
+
+clear i
 for i = 1:length(STIM.levels)  % monocular (DE) contrast conditions
 STIM.conditions.DE(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == 0; 
 end
 
-clear i STIM.conditions.NDE
-
+clear i 
 for i = 1:length(STIM.levels)  % monocular (NDE) contrast conditions
 STIM.conditions.NDE(i,:) = STIM.contrast == 0 & STIM.fixedc == STIM.levels(i); 
 end
 
-clear i STIM.conditions.BIN
-for i = 1:length(STIM.levels)  % binocular contrast (same contrast in two eyes)
+% dioptic contrast (same contrast in two eyes)
+for i = 1:length(STIM.levels)  
 STIM.conditions.BIN(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == STIM.levels(i); 
 end
 
-for i = 1:length(STIM.levels)  % binocular contrast (same contrast in two eyes)
-STIM.conditions.DI_DElow(i,:) = STIM.contrast == STIM.levels(2) & STIM.fixedc == STIM.levels(i); 
-end
-
-for i = 1:length(STIM.levels)  % binocular contrast (same contrast in two eyes)
-STIM.conditions.DI_DEmed(i,:) = STIM.contrast == STIM.levels(3) & STIM.fixedc == STIM.levels(i); 
-end
-
-for i = 1:length(STIM.levels)  % binocular contrast (same contrast in two eyes)
-STIM.conditions.DI_DEhigh(i,:) = STIM.contrast == STIM.levels(4) & STIM.fixedc == STIM.levels(i); 
-end
-
-clear STIM.conditions.DI 
-
-STIM.conditions.DI_exclusive(1,:) = STIM.contrast == STIM.levels(2) & STIM.fixedc == STIM.levels(3); % DE22NDE45
-STIM.conditions.DI_exclusive(2,:) = STIM.contrast == STIM.levels(2) & STIM.fixedc == STIM.levels(4); % DE22NDE90
-STIM.conditions.DI_exclusive(3,:) = STIM.contrast == STIM.levels(3) & STIM.fixedc == STIM.levels(2); % DE45NDE22
-STIM.conditions.DI_exclusive(4,:) = STIM.contrast == STIM.levels(3) & STIM.fixedc == STIM.levels(4); % DE45NDE90
-STIM.conditions.DI_exclusive(5,:) = STIM.contrast == STIM.levels(4) & STIM.fixedc == STIM.levels(2); % DE90NDE22
-STIM.conditions.DI_exclusive(6,:) = STIM.contrast == STIM.levels(4) & STIM.fixedc == STIM.levels(3); % DE90NDE45
+% dichoptic contrast (different contrast in two eyes)
+STIM.conditions.DI(1,:) = STIM.contrast == STIM.levels(2) & STIM.fixedc == STIM.levels(3); % DE22NDE45
+STIM.conditions.DI(2,:) = STIM.contrast == STIM.levels(2) & STIM.fixedc == STIM.levels(4); % DE22NDE90
+STIM.conditions.DI(3,:) = STIM.contrast == STIM.levels(3) & STIM.fixedc == STIM.levels(2); % DE45NDE22
+STIM.conditions.DI(4,:) = STIM.contrast == STIM.levels(3) & STIM.fixedc == STIM.levels(4); % DE45NDE90
+STIM.conditions.DI(5,:) = STIM.contrast == STIM.levels(4) & STIM.fixedc == STIM.levels(2); % DE90NDE22
+STIM.conditions.DI(6,:) = STIM.contrast == STIM.levels(4) & STIM.fixedc == STIM.levels(3); % DE90NDE45
 
 %% Averaged trials by condition
 % The above matrices were just logicals. Now time to take my full cMUA
@@ -320,103 +306,138 @@ STIM.conditions.DI_exclusive(6,:) = STIM.contrast == STIM.levels(4) & STIM.fixed
 % interest.
 
 % aMUA by condition
-clear m STIM.DE.cMUA STIM.NDE.cMUA STIM.BIN.cMUA 
+clear m 
 for m = 1:size(STIM.conditions.DE,1)
-    STIM.DE.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.DE(m,:)),3); 
-    STIM.NDE.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.NDE(m,:)),3); 
-    STIM.BIN.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.BIN(m,:)),3);
-    STIM.DI.DElow.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.DI_DElow(m,:)),3);
-    STIM.DI.DEmed.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.DI_DEmed(m,:)),3);
-    STIM.DI.DEhigh.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.DI_DEhigh(m,:)),3);
+    STIM.DE.aMUA.pc(1).all(m,:,:) = mean(STIM.aMUA.pc(:,:,STIM.conditions.DE(m,:)),3); 
+    STIM.NDE.aMUA.pc(1).all(m,:,:) = mean(STIM.aMUA.pc(:,:,STIM.conditions.NDE(m,:)),3); 
+    STIM.BIN.aMUA.pc(1).all(m,:,:) = mean(STIM.aMUA.pc(:,:,STIM.conditions.BIN(m,:)),3);
 end
 
 clear m
-for m = 1:size(STIM.conditions.DI_exclusive,1)
-    STIM.DI_exclusive.cMUA(m).contrast = mean(STIM.cMUA(:,:,STIM.conditions.DI_exclusive(m,:)),3);
+for m = 1:size(STIM.conditions.DI,1)
+    STIM.DI.aMUA.pc(1).all(m,:,:) = mean(STIM.aMUA.pc(:,:,STIM.conditions.DI(m,:)),3);
 end
 
 % CSD by condition
-clear m Mon_CSD BIN_CSD
+clear m 
 for m = 1:size(STIM.conditions.DE,1)
-    STIM.DE.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.DE(m,:)),3); 
-    STIM.NDE.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.NDE(m,:)),3);
-    STIM.BIN.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.BIN(m,:)),3);
-    STIM.DI.DElow.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.DI_DElow(m,:)),3);
-    STIM.DI.DEmed.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.DI_DEmed(m,:)),3);
-    STIM.DI.DEhigh.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.DI_DEhigh(m,:)),3);
+    STIM.DE.CSD.raw(1).all(m,:,:) = mean(STIM.CSD.raw(:,:,STIM.conditions.DE(m,:)),3); 
+    STIM.NDE.CSD.raw(1).all(m,:,:) = mean(STIM.CSD.raw(:,:,STIM.conditions.NDE(m,:)),3);
+    STIM.BIN.CSD.raw(1).all(m,:,:) = mean(STIM.CSD.raw(:,:,STIM.conditions.BIN(m,:)),3);
 end
 
-for m = 1:size(STIM.conditions.DI_exclusive,1)
-    STIM.DI.exclusive.CSD(m).contrast = mean(STIM.CSD(:,:,STIM.conditions.DI_exclusive(m,:)),3);
+for m = 1:size(STIM.conditions.DI,1)
+    STIM.DI.CSD.raw(1).all(m,:,:) = mean(STIM.CSD.raw(:,:,STIM.conditions.DI(m,:)),3);
+end
+
+%% Binning into layers
+
+laminae_fields = fieldnames(STIM.laminae);
+clear l
+for L = 1:length(laminae_fields)
+STIM.DE.aMUA.pc(1).layers(:,:,L) = mean(STIM.DE.aMUA.pc(1).all(:,:,STIM.laminae.(laminae_fields{L})),3);
+STIM.NDE.aMUA.pc(1).layers(:,:,L) = mean(STIM.NDE.aMUA.pc(1).all(:,:,STIM.laminae.(laminae_fields{L})),3);
+STIM.BIN.aMUA.pc(1).layers(:,:,L) = mean(STIM.BIN.aMUA.pc(1).all(:,:,STIM.laminae.(laminae_fields{L})),3);
+STIM.DI.aMUA.pc(1).layers(:,:,L) = mean(STIM.DI.aMUA.pc(1).all(:,:,STIM.laminae.(laminae_fields{L})),3);
 end
 
 %% collapsing across time for each condition
 % In order to get a single number to represent the contrast response for each contact, I can collapse
-% across time. The following collapses across different lengths of time:
+% across time. The following code collapses across different lengths of time:
 % full stim duration (80ms to offset), transient (80 to 150ms), and
 % sustained (151ms to offset). 
+full = 80:offset;
+transient = 80:150;
+sustained = 151:offset;
 
+% Collapsed aMUA percent change
 clear i 
-clear STIM.DE.coll STIM.NDE.coll STIM.BIN.coll
-for i=1:size(STIM.DE.cMUA,2)
-    STIM.DE.coll.full(i,:)  = mean(STIM.DE.cMUA(i).contrast(80:offset,:),1);
-    STIM.NDE.coll.full(i,:)  = mean(STIM.NDE.cMUA(i).contrast(80:offset,:),1);
-    STIM.BIN.coll.full(i,:)  = mean(STIM.BIN.cMUA(i).contrast(80:offset,:),1);
-    STIM.DI.DElow.coll.full(i,:)  = mean(STIM.DI.DElow.cMUA(i).contrast(80:offset,:),1);
-    STIM.DI.DEmed.coll.full(i,:)  = mean(STIM.DI.DEmed.cMUA(i).contrast(80:offset,:),1);
-    STIM.DI.DEhigh.coll.full(i,:)  = mean(STIM.DI.DEhigh.cMUA(i).contrast(80:offset,:),1);
-    STIM.DE.coll.transient(i,:)  = mean(STIM.DE.cMUA(i).contrast(80:150,:),1);
-    STIM.NDE.coll.transient(i,:)  = mean(STIM.NDE.cMUA(i).contrast(80:150,:),1);
-    STIM.BIN.coll.transient(i,:)  = mean(STIM.BIN.cMUA(i).contrast(80:150,:),1);
-    STIM.DI.DElow.coll.transient(i,:)  = mean(STIM.DI.DElow.cMUA(i).contrast(80:150,:),1);
-    STIM.DI.DEmed.coll.transient(i,:)  = mean(STIM.DI.DEmed.cMUA(i).contrast(80:150,:),1);
-    STIM.DI.DEhigh.coll.transient(i,:)  = mean(STIM.DI.DEhigh.cMUA(i).contrast(80:150,:),1);
-    STIM.DE.coll.sustained(i,:)  = mean(STIM.DE.cMUA(i).contrast(151:offset,:),1);
-    STIM.NDE.coll.sustained(i,:)  = mean(STIM.NDE.cMUA(i).contrast(151:offset,:),1);
-    STIM.BIN.coll.sustained(i,:)  = mean(STIM.BIN.cMUA(i).contrast(151:offset,:),1);
-    STIM.DI.DElow.coll.sustained(i,:)  = mean(STIM.DI.DElow.cMUA(i).contrast(151:offset,:),1);
-    STIM.DI.DEmed.coll.sustained(i,:)  = mean(STIM.DI.DEmed.cMUA(i).contrast(151:offset,:),1);
-    STIM.DI.DEhigh.coll.sustained(i,:)  = mean(STIM.DI.DEhigh.cMUA(i).contrast(151:offset,:),1);
+for i=1:size(STIM.DE.aMUA.pc(1).all,1)
+    STIM.DE.aMUA.pc(1).coll(i,1,:)  = mean(STIM.DE.aMUA.pc(1).all(i,full,:),2);
+    STIM.NDE.aMUA.pc(1).coll(i,1,:)  = mean(STIM.NDE.aMUA.pc(1).all(i,full,:),2);
+    STIM.BIN.aMUA.pc(1).coll(i,1,:)  = mean(STIM.BIN.aMUA.pc(1).all(i,full,:),2);
+    STIM.DE.aMUA.pc(1).coll(i,2,:)  = mean(STIM.DE.aMUA.pc(1).all(i,transient,:),2);
+    STIM.NDE.aMUA.pc(1).coll(i,2,:)  = mean(STIM.NDE.aMUA.pc(1).all(i,transient,:),2);
+    STIM.BIN.aMUA.pc(1).coll(i,2,:)  = mean(STIM.BIN.aMUA.pc(1).all(i,transient,:),2);
+    STIM.DE.aMUA.pc(1).coll(i,3,:)  = mean(STIM.DE.aMUA.pc(1).all(i,sustained,:),2);
+    STIM.NDE.aMUA.pc(1).coll(i,3,:)  = mean(STIM.NDE.aMUA.pc(1).all(i,sustained,:),2);
+    STIM.BIN.aMUA.pc(1).coll(i,3,:)  = mean(STIM.BIN.aMUA.pc(1).all(i,sustained,:),2);
 end
 
 clear i
-for i=1:size(STIM.DI.exclusive.cMUA,2)
-    STIM.DI.exclusive.coll.full(i,:)  = mean(STIM.DI.exclusive.cMUA(i).contrast(80:offset,:),1);
-    STIM.DI.exclusive.coll.transient(i,:)  = mean(STIM.DI.exclusive.cMUA(i).contrast(80:150,:),1);
-    STIM.DI.exclusive.coll.sustained(i,:)  = mean(STIM.DI.exclusive.cMUA(i).contrast(151:offset,:),1);
+for i=1:size(STIM.DI.aMUA.pc(1).all,1)
+    STIM.DI.aMUA.pc(1).coll(i,1,:)  = mean(STIM.DI.aMUA.pc(1).all(i,full,:),2);
+    STIM.DI.aMUA.pc(1).coll(i,2,:)  = mean(STIM.DI.aMUA.pc(1).all(i,transient,:),2);
+    STIM.DI.aMUA.pc(1).coll(i,3,:)  = mean(STIM.DI.aMUA.pc(1).all(i,sustained,:),2);
 end
 
 %% Binning contacts into V1 layers (informed by datalogs)
 % Seperated into full stim duration, transient response, and sustained
 % response
 
-STIM.DE.layers.full = [mean(STIM.DE.coll.full(:,STIM.laminae.supra),2),mean(STIM.DE.coll.full(:,STIM.laminae.gran),2),mean(STIM.DE.coll.full(:,STIM.laminae.infra),2)];
-STIM.DE.layers.transient = [mean(STIM.DE.coll.transient(:,STIM.laminae.supra),2),mean(STIM.DE.coll.transient(:,STIM.laminae.gran),2),mean(STIM.DE.coll.transient(:,STIM.laminae.infra),2)];
-STIM.DE.layers.sustained = [mean(STIM.DE.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.DE.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.DE.coll.sustained(:,STIM.laminae.infra),2)];
+laminae_fields = fieldnames(STIM.laminae);
+clear l
+for L = 1:length(laminae_fields)
+STIM.DE.aMUA.pc(1).coll_layers(:,:,L) = mean(STIM.DE.aMUA.pc(1).coll(:,:,STIM.laminae.(laminae_fields{L})),3);
+STIM.NDE.aMUA.pc(1).coll_layers(:,:,L) = mean(STIM.NDE.aMUA.pc(1).coll(:,:,STIM.laminae.(laminae_fields{L})),3);
+STIM.BIN.aMUA.pc(1).coll_layers(:,:,L) = mean(STIM.BIN.aMUA.pc(1).coll(:,:,STIM.laminae.(laminae_fields{L})),3);
+STIM.DI.aMUA.pc(1).coll_layers(:,:,L) = mean(STIM.DI.aMUA.pc(1).coll(:,:,STIM.laminae.(laminae_fields{L})),3);
+end
 
-STIM.NDE.layers.full = [mean(STIM.NDE.coll.full(:,STIM.laminae.supra),2),mean(STIM.NDE.coll.full(:,STIM.laminae.gran),2),mean(STIM.NDE.coll.full(:,STIM.laminae.infra),2)];
-STIM.NDE.layers.transient = [mean(STIM.NDE.coll.transient(:,STIM.laminae.supra),2),mean(STIM.NDE.coll.transient(:,STIM.laminae.gran),2),mean(STIM.NDE.coll.transient(:,STIM.laminae.infra),2)];
-STIM.NDE.layers.sustained = [mean(STIM.NDE.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.NDE.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.NDE.coll.sustained(:,STIM.laminae.infra),2)];
+%% Calculations (STIM.CALC)
 
-STIM.BIN.layers.full = [mean(STIM.BIN.coll.full(:,STIM.laminae.supra),2),mean(STIM.BIN.coll.full(:,STIM.laminae.gran),2), mean(STIM.BIN.coll.full(:,STIM.laminae.infra),2)];
-STIM.BIN.layers.transient = [mean(STIM.BIN.coll.transient(:,STIM.laminae.supra),2),mean(STIM.BIN.coll.transient(:,STIM.laminae.gran),2),mean(STIM.BIN.coll.transient(:,STIM.laminae.infra),2)];
-STIM.BIN.layers.sustained = [mean(STIM.BIN.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.BIN.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.BIN.coll.sustained(:,STIM.laminae.infra),2)];
+% Subtractions: coll
+STIM.calc.aMUA.pc.subtract.BIN_DE.coll = STIM.BIN.aMUA.pc.coll(:,:,:)-STIM.DE.aMUA.pc.coll(:,:,:);
+STIM.calc.aMUA.pc.subtract.BIN_NDE.coll = STIM.BIN.aMUA.pc.coll(:,:,:)-STIM.NDE.aMUA.pc.coll(:,:,:);
+STIM.calc.aMUA.pc.subtract.DE_NDE.coll = STIM.DE.aMUA.pc.coll(:,:,:)-STIM.NDE.aMUA.pc.coll(:,:,:);
 
-STIM.DI.DElow.layers.full = [mean(STIM.DI.DElow.coll.full(:,STIM.laminae.supra),2),mean(STIM.DI.DElow.coll.full(:,STIM.laminae.gran),2), mean(STIM.DI.DElow.coll.full(:,STIM.laminae.infra),2)];
-STIM.DI.DElow.layers.transient = [mean(STIM.DI.DElow.coll.transient(:,STIM.laminae.supra),2),mean(STIM.DI.DElow.coll.transient(:,STIM.laminae.gran),2),mean(STIM.DI.DElow.coll.transient(:,STIM.laminae.infra),2)];
-STIM.DI.DElow.layers.sustained = [mean(STIM.DI.DElow.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.DI.DElow.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.DI.DElow.coll.sustained(:,STIM.laminae.infra),2)];
+% Subtractions: coll_layer
+STIM.calc.aMUA.pc.subtract.BIN_DE.coll_layers = (STIM.BIN.aMUA.pc.coll_layers(:,:,:)-STIM.DE.aMUA.pc.coll_layers(:,:,:));
+STIM.calc.aMUA.pc.subtract.BIN_NDE.coll_layers = (STIM.BIN.aMUA.pc.coll_layers(:,:,:)-STIM.NDE.aMUA.pc.coll_layers(:,:,:));
+STIM.calc.aMUA.pc.subtract.DE_NDE.coll_layers = (STIM.DE.aMUA.pc.coll_layers(:,:,:)-STIM.NDE.aMUA.pc.coll_layers(:,:,:));
 
-STIM.DI.DEmed.layers.full = [mean(STIM.DI.DEmed.coll.full(:,STIM.laminae.supra),2),mean(STIM.DI.DEmed.coll.full(:,STIM.laminae.gran),2), mean(STIM.DI.DEmed.coll.full(:,STIM.laminae.infra),2)];
-STIM.DI.DEmed.layers.transient = [mean(STIM.DI.DEmed.coll.transient(:,STIM.laminae.supra),2),mean(STIM.DI.DEmed.coll.transient(:,STIM.laminae.gran),2),mean(STIM.DI.DEmed.coll.transient(:,STIM.laminae.infra),2)];
-STIM.DI.DEmed.layers.sustained = [mean(STIM.DI.DEmed.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.DI.DEmed.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.DI.DEmed.coll.sustained(:,STIM.laminae.infra),2)];
+% Fold change: coll_layer
+STIM.calc.aMUA.pc.fchange.BIN_DE = ((STIM.BIN.aMUA.pc.coll_layers(:,:,:)-STIM.DE.aMUA.pc.coll_layers(:,:,:))./(STIM.DE.aMUA.pc.coll_layers(:,:,:)));
+STIM.calc.aMUA.pc.fchange.BIN_NDE = ((STIM.BIN.aMUA.pc.coll_layers(:,:,:)-STIM.DE.aMUA.pc.coll_layers(:,:,:))./(STIM.NDE.aMUA.pc.coll_layers(:,:,:)));
+STIM.calc.aMUA.pc.fchange.DE_NDE = ((STIM.DE.aMUA.pc.coll_layers(:,:,:)-STIM.NDE.aMUA.pc.coll_layers(:,:,:))./(STIM.NDE.aMUA.pc.coll_layers(:,:,:)));
 
-STIM.DI.DEhigh.layers.full = [mean(STIM.DI.DEhigh.coll.full(:,STIM.laminae.supra),2),mean(STIM.DI.DEhigh.coll.full(:,STIM.laminae.gran),2), mean(STIM.DI.DEhigh.coll.full(:,STIM.laminae.infra),2)];
-STIM.DI.DEhigh.layers.transient = [mean(STIM.DI.DEhigh.coll.transient(:,STIM.laminae.supra),2),mean(STIM.DI.DEhigh.coll.transient(:,STIM.laminae.gran),2),mean(STIM.DI.DEhigh.coll.transient(:,STIM.laminae.infra),2)];
-STIM.DI.DEhigh.layers.sustained = [mean(STIM.DI.DEhigh.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.DI.DEhigh.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.DI.DEhigh.coll.sustained(:,STIM.laminae.infra),2)];
+%% Models (LSM | QSM)
+% Model Prediction: Linear Summation (LSM)
 
-STIM.DI.exclusive.layers.full = [mean(STIM.DI.exclusive.coll.full(:,STIM.laminae.supra),2),mean(STIM.DI.exclusive.coll.full(:,STIM.laminae.gran),2), mean(STIM.DI.exclusive.coll.full(:,STIM.laminae.infra),2)];
-STIM.DI.exclusive.layers.transient = [mean(STIM.DI.exclusive.coll.transient(:,STIM.laminae.supra),2),mean(STIM.DI.exclusive.coll.transient(:,STIM.laminae.gran),2),mean(STIM.DI.exclusive.coll.transient(:,STIM.laminae.infra),2)];
-STIM.DI.exclusive.layers.sustained = [mean(STIM.DI.exclusive.coll.sustained(:,STIM.laminae.supra),2),mean(STIM.DI.exclusive.coll.sustained(:,STIM.laminae.gran),2),mean(STIM.DI.exclusive.coll.sustained(:,STIM.laminae.infra),2)];
+% LSMvsBIN
+STIM.BIN.aMUA.pc_LSM.all = STIM.DE.aMUA.pc.all(:,:,:)+STIM.NDE.aMUA.pc.all(:,:,:);
+STIM.BIN.aMUA.pc_LSM.layers = STIM.DE.aMUA.pc.layers(:,:,:)+STIM.NDE.aMUA.pc.layers(:,:,:);
+STIM.BIN.aMUA.pc_LSM.coll = STIM.DE.aMUA.pc.coll(:,:,:)+STIM.NDE.aMUA.pc.coll(:,:,:);
+STIM.BIN.aMUA.pc_LSM.coll_layers = STIM.DE.aMUA.pc.coll_layers(:,:,:)+STIM.NDE.aMUA.pc.coll_layers(:,:,:);
+
+% LSMvsDI
+
+sDE = [2 2 3 3 4 4]; % code of numbers to loop thru for dichoptic conditions
+sNDE = [3 4 2 4 2 3];
+
+clear i
+for i = 1:length(sDE)
+STIM.DI.aMUA.pc_LSM.all(i,:,:) = STIM.DE.aMUA.pc.all(sDE(i),:,:) + STIM.NDE.aMUA.pc.all(sNDE(i),:,:);
+STIM.DI.aMUA.pc_LSM.layers(i,:,:) = STIM.DE.aMUA.pc.layers(sDE(i),:,:) + STIM.NDE.aMUA.pc.layers(sNDE(i),:,:);
+STIM.DI.aMUA.pc_LSM.coll(i,:,:) = STIM.DE.aMUA.pc.coll(sDE(i),:,:) + STIM.NDE.aMUA.pc.coll(sNDE(i),:,:);
+STIM.DI.aMUA.pc_LSM.coll_layers(i,:,:) = STIM.DE.aMUA.pc.coll_layers(sDE(i),:,:) + STIM.NDE.aMUA.pc.coll_layers(sNDE(i),:,:);
+end
+
+% Model Prediction: QSM (Quadratic summation)
+% QSMvsBIN
+STIM.BIN.aMUA.pc_QSM.all = sqrt((STIM.DE.aMUA.pc.all(:,:,:).^2) + (STIM.NDE.aMUA.pc.all(:,:,:).^2));
+STIM.BIN.aMUA.pc_QSM.layers = sqrt((STIM.DE.aMUA.pc.layers(:,:,:).^2) + (STIM.NDE.aMUA.pc.layers(:,:,:).^2));
+STIM.BIN.aMUA.pc_QSM.coll = sqrt((STIM.DE.aMUA.pc.coll(:,:,:).^2) + (STIM.NDE.aMUA.pc.coll(:,:,:).^2));
+STIM.BIN.aMUA.pc_QSM.coll_layers = sqrt((STIM.DE.aMUA.pc.coll_layers(:,:,:).^2) + (STIM.NDE.aMUA.pc.coll_layers(:,:,:).^2));
+
+% QSMvsDI
+for i = 1:length(sDE)
+STIM.DI.aMUA.pc_QSM.all(i,:,:) = sqrt((STIM.DE.aMUA.pc.all(sDE(i),:,:).^2) + (STIM.NDE.aMUA.pc.all(sNDE(i),:,:).^2));
+STIM.DI.aMUA.pc_QSM.layers(i,:,:) = sqrt((STIM.DE.aMUA.pc.layers(sDE(i),:,:).^2) + (STIM.NDE.aMUA.pc.layers(sNDE(i),:,:).^2));
+STIM.DI.aMUA.pc_QSM.coll(i,:,:) = sqrt((STIM.DE.aMUA.pc.coll(sDE(i),:,:).^2) + (STIM.NDE.aMUA.pc.coll(sNDE(i),:,:).^2));
+STIM.DI.aMUA.pc_QSM.coll_layers(i,:,:) = sqrt((STIM.DE.aMUA.pc.coll_layers(sDE(i),:,:).^2) + (STIM.NDE.aMUA.pc.coll_layers(sNDE(i),:,:).^2));
+end
+%%
 
 %% Plotting: (SNAPSHOT)
 % All averaged, baseline corrected trials (LFP, aMUA, CSD, iCSD)
@@ -439,7 +460,7 @@ ylabel('contacts indexed down from surface')
 hold off
 end
 
-bAVG_iCSD = filterCSD(STIM.bsl.CSD')';
+bAVG_iCSD = filterCSD(STIM.CSD.bsl')';
 
 h = subplot(1,4,4);
 imagesc(STIM.refwin,STIM.channels,bAVG_iCSD');
@@ -471,20 +492,20 @@ subplot(1,length(STIM.levels),numel(STIM.levels))
 hold on
 contrastValue = max(STIM.levels);
 global scalingfactor
-f_ShadedLinePlotbyDepth(mean(STIM.aMUA(:,:,STIM.conditions.DE(numel(STIM.levels),:)),3),0:(1/(numel(STIM.channels))):1,STIM.refwin,STIM.channels,1,1);
-title('1 contrast in DE');
+f_ShadedLinePlotbyDepth(mean(STIM.aMUA.raw(:,:,STIM.conditions.DE(numel(STIM.levels),:)),3),0:(1/(numel(STIM.channels))):1,STIM.refwin,STIM.channels,1,1);
+title('.90 contrast in DE');
 xlabel('time (ms)');
 hold off
 
 clear i 
 for i = 1:length(STIM.levels)-1
     subplot(1,length(STIM.levels),i);
-    f_ShadedLinePlotbyDepth_BAM(mean(STIM.aMUA(:,:,STIM.conditions.DE(i,:)),3),0:(1/(numel(STIM.channels))):1,STIM.refwin,STIM.channels,1,1,false,scalingfactor);
+    f_ShadedLinePlotbyDepth_BAM(mean(STIM.aMUA.raw(:,:,STIM.conditions.DE(i,:)),3),0:(1/(numel(STIM.channels))):1,STIM.refwin,STIM.channels,1,1,false,scalingfactor);
    
 plot([0 0], ylim,'k')
 plot([offset offset], ylim,'k')
 if i == 1
-    title({STIM.levels(i),' STIM.levels in both eyes'});
+    title({STIM.levels(i),' contrast in both eyes'});
 else 
     title({STIM.levels(i),' contrast in DE'});
 end
@@ -508,9 +529,9 @@ selectchannels = [STIM.laminae.supra(1):3:STIM.laminae.infra(end)];
 clear c
 for c = 1:length(selectchannels)
     subplot(1,length(selectchannels),c)
-    bar(STIM.BIN.coll.transient(:,selectchannels(c)),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+    bar(STIM.BIN.aMUA.pc.coll(:,2,selectchannels(c)),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
     hold on
-    bar(STIM.DE.coll.transient(:,selectchannels(c)),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+    bar(STIM.DE.aMUA.pc.coll(:,2,selectchannels(c)),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
     set(gca,'box','off');
     ylim([-10 100]);
     xticklabels('')
@@ -537,11 +558,11 @@ clear c
 for c = 1:3
     
     axes(ha(c)); % ha is a variable that gets the axis of each subplot
-    plot(fliplr(STIM.DE.coll.transient(c+1,:)),STIM.channels,'b','linewidth',.5);
+    plot(flipud(squeeze(STIM.DE.aMUA.pc.coll(c+1,2,:))),STIM.channels,'b','linewidth',.5);
     hold on
-    plot(fliplr(STIM.BIN.coll.transient(c+1,:)),STIM.channels,'.-r','linewidth',0.5);
+    plot(flipud(squeeze(STIM.BIN.aMUA.pc.coll(c+1,2,:))),STIM.channels,'.-r','linewidth',0.5);
     hline(STIM.channels(end)-STIM.laminae.gran(end),'-.')
-    xlim([-2 10])
+    xlim([-10 100])
     yticks('')
     yticklabels(fliplr(1:nct))
     ylim([1 nct])
@@ -564,11 +585,11 @@ clear c
 for c = 4:6
     
     axes(ha(c)); % ha is a variable that gets the axis of each subplot
-    plot(fliplr(STIM.DE.coll.sustained(c-2,:)),STIM.channels,'b','linewidth',.5);
+    plot(flipud(squeeze(STIM.DE.aMUA.pc.coll(c-2,3,:))),STIM.channels,'b','linewidth',.5);
     hold on
-    plot(fliplr(STIM.BIN.coll.sustained(c-2,:)),STIM.channels,'.-r','linewidth',0.5);
+    plot(flipud(squeeze(STIM.BIN.aMUA.pc.coll(c-2,3,:))),STIM.channels,'.-r','linewidth',0.5);
     hline(STIM.channels(end)-STIM.laminae.gran(end),'-.')
-    xlim([-10 80])
+    xlim([-10 100])
     yticks('')
     yticklabels(fliplr(1:nct))
     ylim([1 nct])
@@ -585,8 +606,8 @@ for c = 4:6
 end
 
 sgtitle({'Contrast response profiles | Ocularity x contrast x time',BRdatafile},'interpreter','none')
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_tightplot',BRdatafile), '-jpg', '-transparent');
+%cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+%export_fig(sprintf('%s_tightplot',BRdatafile), '-jpg', '-transparent');
 
 %% Collapsed contrast responses for monocular and binocular stim (contrast lines)
 % Designed to show Monocular vs binocular contrast responses alongside CSD
@@ -594,7 +615,7 @@ export_fig(sprintf('%s_tightplot',BRdatafile), '-jpg', '-transparent');
 figure('position',[185 150 887 450]);
 
 h = subplot(1,4,1);
-bAVG_iCSD = filterCSD(STIM.bsl.CSD')';
+bAVG_iCSD = filterCSD(STIM.CSD.bsl')';
 imagesc(STIM.refwin,STIM.channels,bAVG_iCSD');
 hold on
 colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
@@ -612,7 +633,7 @@ set(h,'position',[0.065388951521984,0.097526988745119,0.145749605022835,0.722586
 hold off
 
 subplot(1,4,3)
-plot(fliplr(STIM.BIN.coll.transient(:,:)),STIM.channels);
+plot(fliplr(squeeze(STIM.BIN.aMUA.pc.coll(:,2,:))),STIM.channels);
 hold on
 %ylabel('contacts indexed down from surface');
 set(gca,'box','off');
@@ -629,7 +650,7 @@ hold off
 
 subplot(1,4,2)
 hold on
-plot(fliplr(STIM.DE.coll.transient(:,:)),STIM.channels);
+plot(fliplr(squeeze(STIM.DE.aMUA.pc.coll(:,2,:))),STIM.channels);
 set(gca,'box','off');
 grid on
 xlim([-5 climit*1.2]);
@@ -641,16 +662,8 @@ grid on
 title('Monocular');
 hold off
 
-STIM.calc.contacts.subtractionDE.full = STIM.BIN.coll.full(:,:)-STIM.DE.coll.full(:,:);
-STIM.calc.contacts.subtractionDE.transient = STIM.BIN.coll.transient(:,:)-STIM.DE.coll.transient(:,:);
-STIM.calc.contacts.subtractionDE.sustained = STIM.BIN.coll.sustained(:,:)-STIM.DE.coll.sustained(:,:);
-
-STIM.calc.contacts.subtractionNDE.full = STIM.BIN.coll.full(:,:)-STIM.NDE.coll.full(:,:);
-STIM.calc.contacts.subtractionNDE.transient = STIM.BIN.coll.transient(:,:)-STIM.NDE.coll.transient(:,:);
-STIM.calc.contacts.subtractionNDE.sustained = STIM.BIN.coll.sustained(:,:)-STIM.NDE.coll.sustained(:,:);
-
 subplot(1,4,4)
-plot(fliplr(STIM.calc.contacts.subtractionDE.transient),STIM.channels);
+plot(fliplr(squeeze(STIM.calc.aMUA.pc.subtract.BIN_DE.coll(:,2,:))),STIM.channels);
 hold on 
 grid on
 xlim([-5 25]);
@@ -673,253 +686,219 @@ export_fig(sprintf('%s_lineplots_transient',BRdatafile), '-jpg', '-transparent')
 % and corresponding binocular minus monocular subtractions 
 
 figure('position',[213.6666666666667,149.6666666666667,724.6666666666666,425.3333333333334]);
-subplot(2,3,1)
-clear c
-for c = 1:length(STIM.levels)
-plot(STIM.refwin,mean(STIM.DE.cMUA(c).contrast(:,STIM.laminae.supra),2),'color','b')
-hold on
-plot(STIM.refwin,mean(STIM.BIN.cMUA(c).contrast(:,STIM.laminae.supra),2),'color','r')
-%ylimit = max(abs(get(gcf,'ylim')));
-ylimit = 100;
-set(gca,'ylim',[-10 ylimit],'Box','off','TickDir','out')
-end
-ylabel({'Percent change'...
+
+clear c L
+for L = 1:3
+    subplot(2,3,L)
+    plot(STIM.refwin,STIM.DE.aMUA.pc.layers(:,:,L),'color','b')
+    hold on
+    plot(STIM.refwin,STIM.BIN.aMUA.pc.layers(:,:,L),'color','r')
+    %ylimit = max(abs(get(gcf,'ylim')));
+    ylimit = 100;
+    set(gca,'ylim',[-10 ylimit],'Box','off','TickDir','out')
+    ylabel({'Percent change'...
     'from baseline'});
-xlabel('time (ms)');
-title('Supragranular');
-
-subplot(2,3,2)
-clear c
-for c = 1:length(STIM.levels)
-plot(STIM.refwin,mean(STIM.DE.cMUA(c).contrast(:,STIM.laminae.gran),2),'color','b')
-hold on
-plot(STIM.refwin,mean(STIM.BIN.cMUA(c).contrast(:,STIM.laminae.gran),2),'color','r')
-set(gca,'ylim',[-10 ylimit],'Box','off','TickDir','out')
+    xlabel('time (ms)');
+    if L == 1
+        title('Supragranular');
+    elseif L == 2
+            title('Granular');
+        else 
+            title('Infragranular');
+    end
 end
 
-xlabel('time (ms)');
-title('Granular');
-
-subplot(2,3,3)
-clear c
-for c = 1:length(STIM.levels)
-plot(STIM.refwin,mean(STIM.DE.cMUA(c).contrast(:,STIM.laminae.infra),2),'color','b')
-hold on
-plot(STIM.refwin,mean(STIM.BIN.cMUA(c).contrast(:,STIM.laminae.infra),2),'color','r')
-set(gca,'ylim',[-10 ylimit],'Box','off','TickDir','out')
+clear c L
+for L = 1:3
+    for c = 1:4
+    subplot(2,3,L+3)
+    plot(STIM.refwin,((smooth(STIM.BIN.aMUA.pc.layers(c,:,L)))-(smooth(STIM.DE.aMUA.pc.layers(c,:,L)))),'linewidth',.1);
+    hold on
+    %ylimit = max(abs(get(gcf,'ylim')));
+    ylimit = 50;
+    set(gca,'ylim',[-10 ylimit],'Box','off','TickDir','out')
+    ylabel({'Percent change'...
+    'from baseline'});
+    xlabel('time (ms)');
+    end
 end
 
-xlabel('time (ms)');
-title('Infragranular');
-
-subplot(2,3,4)
-clear c
-for c = 1:length(STIM.levels)
-plot(STIM.refwin,smooth(mean(STIM.BIN.cMUA(c).contrast(:,STIM.laminae.supra),2)-(mean(STIM.DE.cMUA(c).contrast(:,STIM.laminae.supra),2)),.1))
-hold on
-ylimit = max(abs(get(gcf,'ylim')));
-set(gca,'ylim',[-10 ylimit/5],'Box','off','TickDir','out')
-end
-ylabel({'Percent difference'...
-    '(bin - mon)'});
-xlabel('time (ms)');
-
-subplot(2,3,5)
-clear c
-for c = 1:length(STIM.levels)
-plot(STIM.refwin,smooth(mean(STIM.BIN.cMUA(c).contrast(:,STIM.laminae.gran),2)-(mean(STIM.DE.cMUA(c).contrast(:,STIM.laminae.gran),2)),.1))
-hold on
-ylimit = max(abs(get(gcf,'ylim')));
-set(gca,'ylim',[-10 ylimit/5],'Box','off','TickDir','out')
-end
-
-xlabel('time (ms)');
-
-subplot(2,3,6)
-clear c
-for c = 1:length(STIM.levels)
-plot(STIM.refwin,smooth(mean(STIM.BIN.cMUA(c).contrast(:,STIM.laminae.infra),2)-(mean(STIM.DE.cMUA(c).contrast(:,STIM.laminae.infra),2)),.1))
-hold on
-ylimit = max(abs(get(gcf,'ylim')));
-set(gca,'ylim',[-10 ylimit/5],'Box','off','TickDir','out')
-end
-
-xlabel('time (ms)');
-
-sgtitle({'V1 laminar contrast response profiles: monocular (blue) vs binocular (red)'...
+sgtitle({'V1 laminae contrast responses: monoptic (blue) vs dioptic (red) stimulation'...
    ,BRdatafile},'Interpreter','none');
 
 % cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 % export_fig(sprintf('%s_timeplots',BRdatafile), '-jpg', '-transparent');
 
-%% Bar Graphs of Binned Layers (Binned Layers)
+%% Bar Graph: Coll_layer; DE vs NDE vs BIN
 % Using bar graphs to represent monocular vs binocular response layer
 % differences and fold change from one to the other
 
 rcontrast = round(STIM.levels,2,'significant');
 
-% subtraction calculations
-STIM.calc.layers.subtractionDE.full = ((STIM.BIN.layers.full(:,:)-STIM.DE.layers.full(:,:)));
-STIM.calc.layers.subtractionDE.transient = ((STIM.BIN.layers.transient(:,:)-STIM.DE.layers.transient(:,:)));
-STIM.calc.layers.subtractionDE.sustained = ((STIM.BIN.layers.sustained(:,:)-STIM.DE.layers.sustained(:,:)));
+figure('Position', [155,98,965,487]);
 
-% fold change calculations
-STIM.calc.layers.fchange.full = ((STIM.BIN.layers.full(:,:)-STIM.DE.layers.full(:,:))./(STIM.DE.layers.full(:,:)));
-STIM.calc.layers.fchange.transient = ((STIM.BIN.layers.transient(:,:)-STIM.DE.layers.transient(:,:))./(STIM.DE.layers.transient(:,:)));
-STIM.calc.layers.fchange.sustained = ((STIM.BIN.layers.sustained(:,:)-STIM.DE.layers.sustained(:,:))./(STIM.DE.layers.sustained(:,:)));
+labels = {0, .22, .45, .9,[],0,.22,.45,.9}; format bank;
 
-
-figure('Position', [148,73,633,487]);
-subplot(3,3,1)
-bar(STIM.BIN.layers.full(:,1),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+clear L c
+for L = 1:3
+subplot(2,3,L)
+bar([STIM.BIN.aMUA.pc.coll_layers(:,2,L);NaN;STIM.BIN.aMUA.pc.coll_layers(:,3,L)],0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
-bar(STIM.DE.layers.full(:,1),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+bar([STIM.DE.aMUA.pc.coll_layers(:,2,L);NaN;STIM.DE.aMUA.pc.coll_layers(:,3,L)],0.6,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+bar([STIM.NDE.aMUA.pc.coll_layers(:,2,L);NaN;STIM.NDE.aMUA.pc.coll_layers(:,3,L)],0.4,'FaceColor',[.2, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
-ylim([-5 45]);
-xticklabels(rcontrast)
+ylim([-5 55]);
+xticklabels(labels)
 xlabel('contrast')
-ylabel('percent change');
-title('Supragranular');
+ylabel('Relative aMUA response');
+    if L == 1
+        title('Supragranular');
+        legend('BIN','DE','NDE','location','northeast');
+    elseif L == 2
+            title('Granular');
+        else 
+            title('Infragranular');
+    end
 hold off
+end
 
-subplot(3,3,2)
-bar(STIM.BIN.layers.full(:,2),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+clear L c
+for L = 1:3
+subplot(2,3,L+3)
+bar([STIM.calc.aMUA.pc.subtract.BIN_NDE.coll_layers(:,2,L);NaN;STIM.calc.aMUA.pc.subtract.BIN_NDE.coll_layers(:,3,L)],0.4,'FaceColor',[0.2500, 0.250, 0.2980],'EdgeColor','k','LineWidth',0.8);
 hold on
-bar(STIM.DE.layers.full(:,2),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+bar([STIM.calc.aMUA.pc.subtract.BIN_DE.coll_layers(:,2,L);NaN;STIM.calc.aMUA.pc.subtract.BIN_DE.coll_layers(:,3,L)],0.8,'FaceColor',[0.8500, 0.5250, 0.7980],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
-ylim([-5 45]);
-xticklabels(rcontrast)
+ylim([-5 30]);
+xticklabels(labels)
 xlabel('contrast')
-ylabel('percent change');
-title('Granular');
+ylabel('difference');
 hold off
-
-subplot(3,3,3)
-bar(STIM.BIN.layers.full(:,3),0.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
-hold on
-bar(STIM.DE.layers.full(:,3),0.4,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
-set(gca,'box','off');
-ylim([-5 45]);
-xticklabels(rcontrast)
-xlabel('contrast')
-ylabel('percent change');
-title('Infragranular');
-hold off
-
-subplot(3,3,4)
-bar(STIM.calc.layers.subtractionDE.full(:,1),0.8,'FaceColor',[0.20, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-5 15]);
-xticklabels(rcontrast)
-xlabel('contrast')
-ylabel('percent difference');
-%title('Supragranular');
-hold off
-
-subplot(3,3,5)
-bar(STIM.calc.layers.subtractionDE.full(:,2),0.8,'FaceColor',[0.20, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-5 15]);
-xticklabels(rcontrast)
-xlabel('contrast')
-ylabel('percent difference');
-%title('Granular');
-hold off
-
-subplot(3,3,6)
-bar(STIM.calc.layers.subtractionDE.full(:,3),0.8,'FaceColor',[0.20, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-5 15]);
-xticklabels(rcontrast)
-xlabel('contrast')
-ylabel('percent difference');
-hold off
-
-subplot(3,3,7)
-bar(STIM.calc.layers.fchange.full(:,1),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-.2 1]);
-xticklabels(rcontrast)
-xlabel('contrast')
-ylabel('fold change');
-%title('Supragranular');
-hold off
-
-subplot(3,3,8)
-bar(STIM.calc.layers.fchange.full(:,2),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-.2 1]);
-xticklabels(rcontrast)
-xlabel('contrast')
-ylabel('fold change');
-%title('Granular');
-hold off
-
-subplot(3,3,9)
-bar(STIM.calc.layers.fchange.full(:,3),0.8,'FaceColor',[0.7, 0.7, 0.7],'EdgeColor','k','LineWidth',0.8);
-hold on
-set(gca,'box','off');
-ylim([-.2 1]);
-xticklabels(rcontrast)
-xlabel('contrast')
-ylabel('fold change');
-hold off
+end
 
 sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','none');
 
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_binned-layers-new',BRdatafile), '-jpg', '-transparent');
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig(sprintf('%s_binned-layers-new',BRdatafile), '-jpg', '-transparent');
 
-%% Transient vs sustained, Fold change Semilogx
+%% Bar Graphs: Model Predictions vs BINOCULAR response
 
-figure('position',[360,450.3,560,167.6]);
-subplot(1, 3, 1)
-format bank;
-semilogx(STIM.levels,STIM.calc.layers.fchange.transient(:,1),'-.k');
+figure('Position', [155,98,965,487]);
+
+clear L c
+for L = 1:3
+subplot(3,3,L)
+bar([STIM.DE.aMUA.pc.coll_layers(:,2,L);NaN;STIM.DE.aMUA.pc.coll_layers(:,3,L)],0.8,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
 hold on
-semilogx(STIM.levels,STIM.calc.layers.fchange.sustained(:,1),'k');
-%semilogx(contrast,full(:,1),'-o');
-xticklabels('');
-ylim([-.2 1]);
-xlabel('contrast level')
-ylabel('Fold change');
-title('Supragranular');
+bar([STIM.NDE.aMUA.pc.coll_layers(:,2,L);NaN;STIM.NDE.aMUA.pc.coll_layers(:,3,L)],0.6,'FaceColor',[.2, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
+set(gca,'box','off');
+ylim([-5 80]);
+xticklabels(labels)
+xlabel('contrast')
+ylabel('aMUA response');
+    if L == 1
+        title('Supragranular');
+        lgd = legend('DE','NDE','location','northwest');
+        lgd.FontSize = 4;
+    elseif L == 2
+            title('Granular');
+        else 
+            title('Infragranular');
+    end
 hold off
+end
 
-subplot(1, 3, 2)
-format bank;
-semilogx(STIM.levels,STIM.calc.layers.fchange.transient(:,2),'-.k');
+clear L c
+for L = 1:3
+subplot(3,3,L+3)
+bar([STIM.BIN.aMUA.pc_LSM.coll_layers(:,2,L);NaN;STIM.BIN.aMUA.pc_LSM.coll_layers(:,3,L)],0.8,'FaceColor',[1, 1, 1],'linestyle','--','EdgeColor','k','LineWidth',0.8);
 hold on
-semilogx(STIM.levels,STIM.calc.layers.fchange.sustained(:,2),'k');
-xticklabels('');
-xlabel('contrast level')
-ylim([-.2 1]);
-title('Granular');
+bar([STIM.BIN.aMUA.pc.coll_layers(:,2,L);NaN;STIM.BIN.aMUA.pc.coll_layers(:,3,L)],0.6,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+bar([STIM.BIN.aMUA.pc_QSM.coll_layers(:,2,L);NaN;STIM.BIN.aMUA.pc_QSM.coll_layers(:,3,L)],0.4,'FaceColor',[.85, .325, .098],'linestyle',':','EdgeColor','k','LineWidth',1);
+set(gca,'box','off');
+ylim([-5 80]);
+xticklabels(labels)
+xlabel('contrast')
+ylabel('aMUA response');
 hold off
+    if L == 1
+        lgd = legend('LSM','BIN','QSM','location','northwest');
+        lgd.FontSize = 4;
+    end
+end
 
-subplot(1, 3, 3)
-format bank;
-semilogx(STIM.levels,STIM.calc.layers.fchange.transient(:,3), '-.k');
+clear i
+for i = 1:3
+subplot(3,3,i+6)
+bar([STIM.BIN.aMUA.pc_LSM.coll_layers(:,2,L)-STIM.BIN.aMUA.pc.coll_layers(:,2,L);NaN;STIM.BIN.aMUA.pc_LSM.coll_layers(:,3,L)-STIM.BIN.aMUA.pc.coll_layers(:,3,L)],0.8,'grouped','FaceColor',[1, 1, 1],'EdgeColor','k','LineWidth',0.8,'linestyle','--');
 hold on
-semilogx(STIM.levels,STIM.calc.layers.fchange.sustained(:,3),'k');
-xticklabels('');
-ylim([-.2 1]);
-xlabel('contrast level')
-title('Infragranular');
+bar([STIM.BIN.aMUA.pc_QSM.coll_layers(:,2,L)-STIM.BIN.aMUA.pc.coll_layers(:,2,L);NaN;STIM.BIN.aMUA.pc_QSM.coll_layers(:,3,L)-STIM.BIN.aMUA.pc.coll_layers(:,3,L)],0.8,'grouped','FaceColor',[1, 1, 1],'EdgeColor','k','LineWidth',1,'linestyle',':');
+set(gca,'box','off');
+ylim([-15 30]);
+xticklabels(labels);
+xlabel('contrast')
+ylabel('difference from model');
 hold off
-%legend('transient','sustained','full','Location','southoutside','orientation','vertical');
+end
 
-sgtitle({'Fold change from monocular to binocular: transient vs sustained',BRdatafile},'Interpreter','none');
+sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','none');
 
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_layers-transvsust',BRdatafile), '-jpg', '-transparent');
+%%
 
-clear h1
+figure('position',[145,88.33333333333333,786.6666666666666,541.3333333333333]);
+clear i L
+for L = 1:3
+subplot(3,3,L)
+plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_QSM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-b','linewidth',2);
+hold on
+plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_LSM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-r','linewidth',2);
+ylim([-20 40])
+xlim([0 600])
+xlabel('time (ms)');
+ylabel('difference');
+hline(0,'-.k')
+vline(offset,'-.k')
+    if L == 1
+        title('Supragranular');
+        lgd = legend('QSM','LSM','location','northwest');
+        lgd.FontSize = 4;
+    elseif L == 2
+            title('Granular');
+        else 
+            title('Infragranular');
+    end
+end
+
+clear i L
+for L = 1:3
+subplot(3,3,L+3)
+plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_QSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-b','linewidth',2);
+hold on
+plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_LSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-r','linewidth',2);
+ylim([-20 40])
+xlim([0 600])
+xlabel('time (ms)');
+ylabel('difference');
+hline(0,'-.k')
+vline(offset,'k')
+end
+
+clear i L
+for L = 1:3
+subplot(3,3,L+6)
+plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_QSM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-b','linewidth',2);
+hold on
+plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_LSM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-r','linewidth',2);
+ylim([-20 40])
+xlim([0 600])
+xlabel('time (ms)');
+ylabel('difference');
+hline(0,'-.k')
+vline(offset,'k')
+hold off
+end
+
+sgtitle("idk");
 
 %% Saving Workspace to D drive
 
