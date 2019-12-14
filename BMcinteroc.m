@@ -536,7 +536,7 @@ else
     fprintf('\nSaving workspace...\n');
 end
 
-cd('D:\mcosinteroc\')
+cd('D:\mcosinteroc2\')
 save(sprintf('%s',BRdatafile),'STIM','BRdatafile','nct');
 
 fprintf('%s.mat saved',BRdatafile);

@@ -348,9 +348,9 @@ hold off
     end
 end
 
-clear i
-for i = 1:3
-subplot(3,3,i+6)
+clear L
+for L = 1:3
+subplot(3,3,L+6)
 bar([STIM.BIN.aMUA.pc_LSM.coll_layers(:,2,L)-STIM.BIN.aMUA.pc.coll_layers(:,2,L);NaN;STIM.BIN.aMUA.pc_LSM.coll_layers(:,3,L)-STIM.BIN.aMUA.pc.coll_layers(:,3,L)],0.8,'grouped','FaceColor',[1, 1, 1],'EdgeColor','k','LineWidth',0.8,'linestyle','--');
 hold on
 bar([STIM.BIN.aMUA.pc_QSM.coll_layers(:,2,L)-STIM.BIN.aMUA.pc.coll_layers(:,2,L);NaN;STIM.BIN.aMUA.pc_QSM.coll_layers(:,3,L)-STIM.BIN.aMUA.pc.coll_layers(:,3,L)],0.8,'grouped','FaceColor',[1, 1, 1],'EdgeColor','k','LineWidth',1,'linestyle',':');
@@ -387,7 +387,7 @@ xtickangle(45)
     if L == 1
         title('Supragranular');
         lgd = legend('LSM','DI','QSM','location','northwest');
-        lgd.FontSize = 4;
+        lgd.FontSize = 5;
     elseif L == 2
             title('Granular');
         else 
@@ -407,6 +407,10 @@ xticklabels(labels);
 xtickangle(45)
 xlabel('contrast')
 ylabel('difference from model');
+    if L == 1
+        lgd = legend('LSM-BIN','QSM-BIN','location','northwest');
+        lgd.FontSize = 5;
+    end
 hold off
 end
 

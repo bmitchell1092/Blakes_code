@@ -58,7 +58,7 @@ fn = fieldnames(tmp.STIM.DE.aMUA.pc);
     end 
 end
 
-%% sAVG
+%% session AVG
 % Step 2: Average and STD
 
 clear f 
@@ -102,11 +102,23 @@ end
 % Step 1: load Variable
 clear i tmp subtractionDE
 for i = 1: length(fullFileName)
-tmp = load(fullFileName{i},'STIM');
+tmp = load(fullFileName{i},'STIM');   % loaded in like contrast,channel,trial
+                                      % I have
+                                      % contrast,samples,channel,trial
 sessions.calc.subtractionDE.transient(:,:,i) = tmp.STIM.calc.contacts.subtractionDE.transient(2:4,:);
 sessions.calc.subtractionDE.sustained(:,:,i) = tmp.STIM.calc.contacts.subtractionDE.sustained(2:4,:);
 end
-
+%% Attempt 1
+clear f
+% for f = 1:1
+    clear c
+    for c = 1:4
+        temp = permute(squeeze(sessions.DE.aMUA.pc.coll(c,:,:,:)),[3 1 2]); 
+        [sAVG.DE.aMUA.pc.coll.aligned(c,:,:), corticaldepth, ~] = laminarmean(temp,BOL4_test);
+    end
+% end
+% Success!!!!!!!!!!!!!!!!
+%%
 % Step 2: Permute matrix to work with align function
 sessions_subtractionDE_transient = permute(sessions.calc.subtractionDE.transient,[3 1 2]);
 sessions_subtractionDE_sustained = permute(sessions.calc.subtractionDE.sustained,[3 1 2]);
@@ -121,29 +133,6 @@ load('SessionDepths'); % found in dependencies folder
 clear sessions_subtractionDE_transient sessions_subtractionDE_sustained
 
 %% Variable: Coll
-
-% Step 2: Permuate matrix to work with align function
-
-perm.sessions_collDE_transient = permute(sessions.DE.coll.transient,[3 1 2]);
-perm.sessions_collDE_sustained = permute(sessions.DE.coll.sustained,[3 1 2]);
-perm.sessions_collNDE_transient = permute(sessions.NDE.coll.transient,[3 1 2]);
-perm.sessions_collNDE_sustained = permute(sessions.NDE.coll.sustained,[3 1 2]);
-perm.sessions_collBIN_transient = permute(sessions.BIN.coll.transient,[3 1 2]);
-perm.sessions_collBIN_sustained = permute(sessions.BIN.coll.sustained,[3 1 2]);
-perm.sessions_collDI_transient = permute(sessions.DI.coll.transient,[3 1 2]);
-perm.sessions_collDI_sustained = permute(sessions.DI.coll.sustained,[3 1 2]);
-
-% Step 3: Alignment
-
-[AVG.DE.coll.transient, ~, ~] = laminarmean(perm.sessions_collDE_transient,BOL4);
-[AVG.DE.coll.sustained, ~, ~] = laminarmean(perm.sessions_collDE_sustained,BOL4);
-[AVG.NDE.coll.transient, ~, ~] = laminarmean(perm.sessions_collNDE_transient,BOL4);
-[AVG.NDE.coll.sustained, ~, ~] = laminarmean(perm.sessions_collNDE_sustained,BOL4);
-[AVG.BIN.coll.transient, ~, ~] = laminarmean(perm.sessions_collBIN_transient,BOL4);
-[AVG.BIN.coll.sustained, ~, ~] = laminarmean(perm.sessions_collBIN_sustained,BOL4);
-[AVG.DI.coll.transient, ~, ~] = laminarmean(perm.sessions_collDI_transient,BOL4);
-[AVG.DI.coll.sustained, corticaldepth, N] = laminarmean(perm.sessions_collDI_sustained,BOL4);
-clear perm
 
 %% Variable: CSD
 
