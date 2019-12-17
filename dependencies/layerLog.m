@@ -70,5 +70,13 @@ switch file
         supra = 10:13;
         gran = 14:19;
         infra = 20:24;
+    case '170719_I_mcosinteroc003'
+        supra = 12:14;
+        gran = 15:20;
+        infra = 21:32;
+    case '170724_I_mcosinteroc001'
+        supra = 5:14;
+        gran = 15:20;
+        infra = 21:32;
 end
 
