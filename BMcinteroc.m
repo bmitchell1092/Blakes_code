@@ -4,8 +4,36 @@
 % raw neural data. Each stim onset with animal fixation for the duration of presentation is a trial. 
 % Generate LFP, aMUA, and CSD --triggered to a reference
 % window. Average across trials and baseline corrected when necessary. 
-% Several plotting options for data visualization at the end
 clear
+
+loop = 1; % 1 = loop thru all files; 0 requires file to be specified
+%% Start
+
+if loop == true
+    myFolder = 'D:\DATA 2\';  % Specify the folder where the files live.
+
+    % Check to make sure that folder actually exists.  Warn user if it doesn't.
+    if ~isfolder(myFolder)
+      errorMessage = sprintf('Error: The following folder does not exist:\n%s', myFolder);
+      uiwait(warndlg(errorMessage));
+      return;
+    end
+
+    % Get a list of all files in the folder with the desired file name pattern.
+    filePattern = fullfile(myFolder, '*.ns6'); 
+    matFiles = dir(filePattern);
+    for k = 1:length(matFiles)
+    baseFileName{k} = matFiles(k).name;
+    fullFileName{k} = fullfile(myFolder, baseFileName{k});
+    [~, name{k}, ~] = fileparts(baseFileName{k});
+    end
+end
+
+%% Optional (Loop thru all sessions on D: Drive)
+clear z
+for z = 2:6
+
+
 
 %% Establish directories and set path
 
@@ -18,39 +46,24 @@ if strcmp(getenv('USER'),'maierav')                                      %retrie
 else
     npmkdir  = '/users/bmitc/Documents/MATLAB/NPMK/';                    %neural processing matlab kit (NPMK)
     nbanalysisdir   = '/users/bmitc/Documents/MATLAB/nbanalysis/';       %directory with various tools for opening, loading, and processing 
-    datadir  = '/users/bmitc/Box Sync/DATA/';                            %this is my Vanderbilt Box sync 
+    %datadir  = '/users/bmitc/Box Sync/DATA/';                            %this is my Vanderbilt Box sync 
     %datadir = 'users/bmitc/Documents/MATLAB/data/';
+    datadir = 'D:\DATA 2\';
 end
 
 addpath(genpath(npmkdir))
 addpath(genpath(nbanalysisdir))
 addpath(genpath(datadir))
 
-BRdatafile = '160510_E_mcosinteroc001'; 
+if loop == false
+    BRdatafile = '160505_E_mcosinteroc002'; 
+else 
+
+    BRdatafile = char(name(z));
+end
+
 filename = [datadir BRdatafile];
 
-%% Optional (Loop thru all sessions on D: Drive)
-
-% myFolder = 'D:\mcosinteroc\';  % Specify the folder where the files live.
-% 
-% % Check to make sure that folder actually exists.  Warn user if it doesn't.
-% if ~isfolder(myFolder)
-%   errorMessage = sprintf('Error: The following folder does not exist:\n%s', myFolder);
-%   uiwait(warndlg(errorMessage));
-%   return;
-% end
-
-% Get a list of all files in the folder with the desired file name pattern.
-% filePattern = fullfile(myFolder, '*.mat'); 
-% matFiles = dir(filePattern);
-% for k = 1:length(matFiles)
-% baseFileName{k} = matFiles(k).name;
-% fullFileName{k} = fullfile(myFolder, baseFileName{k});
-% end
-% 
-% for z = 1:length(fullFileName)
-% load(fullFileName{p},'BRdatafile'); 
-% filename = [datadir BRdatafile];
 
 %% Define layers by contact (informed by datalogs)
 
@@ -253,14 +266,16 @@ CSD = padarray(CSD,[0 1],NaN,'replicate'); % pad array if you want to keep the m
                                            % dimension as the other matrices
 
 %% trigger the neural data to the event codes of interest                                         
-
-STIM.off = round(((STIM.offsets(1)-STIM.onsets(1))/(30)),0); % stimulus offset as calculated from grating text file.
 pre   = -50; % 50ms before stim onset
 post  = (round(10^-2*STIM.off)/10^-2)+100; % ~100 ms after stim offset
-
+%post = 600;
 STIM.LFP.raw = trigData(LFP,STIM.onsetsdown,-pre,post); %pre variable is in absolute units 
 STIM.CSD.raw  = trigData(CSD,STIM.onsetsdown,-pre,post); 
 STIM.aMUA.raw = trigData(MUA,STIM.onsetsdown,-pre,post); 
+
+%% Setting up reference window
+STIM.off = round(((STIM.offsets(1)-STIM.onsets(1))/(30)),0); % stimulus offset as calculated from grating text file.
+STIM.refwin = pre:post;
 
 %% Averaging across trials & baseline correct
 clear avg
@@ -303,8 +318,7 @@ STIM.ori = unique(STIM.tilt); % retrieves unique orientations
 
 clear i
 for i = 1:length(STIM.levels)  % monocular (DE) contrast conditions
-STIM.conditions.DE(i,:) = STIM.contrast == STIM.levels(i) &...
-                          STIM.fixedc == 0; 
+STIM.conditions.DE(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == 0; 
 end
 
 clear i 
@@ -476,16 +490,17 @@ STIM.DI.CSD.QSM(i,:,:) = sqrt((STIM.DE.CSD.bsl(sDE(i),:,:).^2) + (STIM.NDE.CSD.b
 STIM.DI.CSD.NORM(i,:,:) = (STIM.DE.CSD.bsl(sDE(i),:,:) + (STIM.NDE.CSD.bsl(sNDE(i),:,:)))./2;
 end
 %% End 
-
+if loop == false
 fprintf('\nWe did it, gang.\n');
 fprintf('\nNo explosion today.\n');
-
+end
 
 %% Plot: (SNAPSHOT)
 % All averaged, baseline corrected trials (LFP, aMUA, CSD, iCSD)
-
+pre = -50;
+post = 600;
 STIM.refwin = pre:post; % reference window for line plotting
-STIM.channels = 1:nct;  % how many channels (nct is a predefined variable with the exact number of channels
+STIM.channels = 1:size(STIM.aMUA.raw,2);  % how many channels (nct is a predefined variable with the exact number of channels
 
 h1 = figure('position',[15,135,1200,500]);
 clear i
@@ -527,16 +542,22 @@ cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_snapshot',BRdatafile), '-jpg', '-transparent');
 
 %% Saving Workspace to D drive
-
+if loop == false
 Prompt = ('Would you like to save the workspace? (y/n)');
 str = input(Prompt,'s');
-if str == 'n' || str == 'N'
-    error('Did not save workspace');
+    if str == 'n' || str == 'N'
+        error('Did not save workspace');
+    else 
+        fprintf('\nSaving workspace...\n');
+    end
 else 
     fprintf('\nSaving workspace...\n');
 end
 
-cd('D:\mcosinteroc2\')
-save(sprintf('%s',BRdatafile),'STIM','BRdatafile','nct');
+cd('D:\mcosinteroc_new\')
+save(sprintf('%s',BRdatafile),'STIM','BRdatafile');
 
-fprintf('%s.mat saved',BRdatafile);
+fprintf('%s.mat saved\n',BRdatafile);
+
+clearvars -except name loop
+end
