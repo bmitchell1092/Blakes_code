@@ -85,8 +85,8 @@ for c = 1:3
     hline(STIM.channels(end)-STIM.laminae.gran(end),'-.')
     xlim([-10 100])
     yticks('')
-    yticklabels(fliplr(1:nct))
-    ylim([1 nct])
+    yticklabels(fliplr(1:length(STIM.channels)))
+    ylim([1 length(STIM.channels)])
     %yticklabels({flipud(1:length(STIM.channels))});
     grid on
     hold off
@@ -112,8 +112,8 @@ for c = 4:6
     hline(STIM.channels(end)-STIM.laminae.gran(end),'-.')
     xlim([-10 100])
     yticks('')
-    yticklabels(fliplr(1:nct))
-    ylim([1 nct])
+    yticklabels(fliplr(1:length(STIM.channels)))
+    ylim([1 length(STIM.channels)])
     %yticklabels({flipud(1:length(STIM.channels))});
     grid on
     hold off
@@ -163,9 +163,9 @@ xlabel('Percent change');
 grid on
 climit = max(abs(get(gca,'xlim'))*1);
 xlim([-5 climit*1.2]);
-yticks(1:nct)
-yticklabels(fliplr(1:nct))
-ylim([1 nct])
+yticks(1:length(STIM.channels))
+yticklabels(fliplr(1:length(STIM.channels)))
+ylim([1 length(STIM.channels)])
 title('Binocular');
 hold off
 
@@ -175,9 +175,9 @@ plot(fliplr(squeeze(STIM.DE.aMUA.pc.coll(:,2,:))),STIM.channels);
 set(gca,'box','off');
 grid on
 xlim([-5 climit*1.2]);
-yticks(1:nct)
-yticklabels(fliplr(1:nct))
-ylim([1 nct])
+yticks(1:length(STIM.channels))
+yticklabels(fliplr(1:length(STIM.channels)))
+ylim([1 length(STIM.channels)])
 xlabel('Percent change');
 grid on
 title('Monocular');
@@ -189,9 +189,9 @@ hold on
 grid on
 xlim([-5 25]);
 set(gca,'box','off');
-yticks(1:nct)
-yticklabels(fliplr(1:nct))
-ylim([1 nct])
+yticks(1:length(STIM.channels))
+yticklabels(fliplr(1:length(STIM.channels)))
+ylim([1 length(STIM.channels)])
 xlabel('Percent change');
 title('Subtraction (bin - mon)');
 %legend(num2str(STIM.levels),'Location','southoutside','orientation','horizontal');
@@ -376,7 +376,7 @@ subplot(2,3,L)
 bar([STIM.DI.aMUA.pc_LSM.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc_LSM.coll_layers(:,3,L)],0.8,'FaceColor',[1, 1, 1],'linestyle','--','EdgeColor','k','LineWidth',0.8);
 hold on
 bar([STIM.DI.aMUA.pc.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc.coll_layers(:,3,L)],0.6,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
-bar([STIM.DI.aMUA.pc_QSM.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc_QSM.coll_layers(:,3,L)],0.4,'FaceColor',[.85, .325, .098],'linestyle',':','EdgeColor','k','LineWidth',1);
+bar([STIM.DI.aMUA.pc_QSM.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc_QSM.coll_layers(:,3,L)],0.4,'FaceAlpha',.05,'linestyle',':','EdgeColor','k','LineWidth',1);
 set(gca,'box','off');
 ylim([-5 80]);
 xticklabels(labels)
@@ -386,7 +386,7 @@ hold off
 xtickangle(45)
     if L == 1
         title('Supragranular');
-        lgd = legend('LSM','DI','QSM','location','northwest');
+        lgd = legend('LSM','BIN','QSM','location','northwest');
         lgd.FontSize = 5;
     elseif L == 2
             title('Granular');
@@ -427,9 +427,9 @@ figure('position',[145,88.33333333333333,786.6666666666666,541.3333333333333]);
 clear i L
 for L = 1:3
 subplot(3,3,L)
-plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_QSM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-b','linewidth',2);
+plot(smooth(STIM.BIN.aMUA.pc_QSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-b','linewidth',2);
 hold on
-plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_LSM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-r','linewidth',2);
+plot(smooth(STIM.BIN.aMUA.pc_LSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-r','linewidth',2);
 ylim([-10 25])
 xlim([0 600])
 xlabel('time (ms)');
@@ -486,8 +486,8 @@ figure('position',[166.3333333333333,85,990.6666666666667,537.3333333333333]);
 clear i
 for i = 1:4
 subplot(2,4,i);
-bAVG_iCSD = filterCSD(squeeze(STIM.DE.CSD.bsl(i,:,10:30))')';
-imagesc(STIM.refwin,10:30,bAVG_iCSD');
+bAVG_iCSD = filterCSD(squeeze(STIM.DE.CSD.bsl(i,:,:))')';
+imagesc(STIM.refwin,STIM.channels,bAVG_iCSD');
 hold on
 colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
 colorbar; v = vline(0); set(v,'color','k','linestyle','-','linewidth',1);
@@ -497,7 +497,7 @@ xlabel('time (ms)')
 clrbar = colorbar; %clrbar.Label.String = 'nA/mm^3'; 
 set(clrbar.Label,'rotation',270,'fontsize',10,'VerticalAlignment','middle');
 ylabel('contacts indexed down from surface');
-set(gca,'CLim',[-3000 3000],'Box','off','TickDir','out')
+set(gca,'CLim',[-500 500],'Box','off','TickDir','out')
 %set(h,'position',[0.065388951521984,0.097526988745119,0.145749605022835,0.722586325702473]);
 hold off
     if i == 1
@@ -513,8 +513,8 @@ end
 
 for i = 1:4
 subplot(2,4,i+4);
-bAVG_iCSD = filterCSD(squeeze(STIM.BIN.CSD.bsl(i,:,10:30))')';
-imagesc(STIM.refwin,10:30,bAVG_iCSD');
+bAVG_iCSD = filterCSD(squeeze(STIM.BIN.CSD.bsl(i,:,:))')';
+imagesc(STIM.refwin,STIM.channels,bAVG_iCSD');
 hold on
 colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
 colorbar; v = vline(0); set(v,'color','k','linestyle','-','linewidth',1);
@@ -524,7 +524,7 @@ xlabel('time (ms)')
 clrbar = colorbar; %clrbar.Label.String = 'nA/mm^3'; 
 set(clrbar.Label,'rotation',270,'fontsize',10,'VerticalAlignment','middle');
 ylabel('contacts indexed down from surface');
-set(gca,'CLim',[-3000 3000],'Box','off','TickDir','out')
+set(gca,'CLim',[-500 500],'Box','off','TickDir','out')
 %set(h,'position',[0.065388951521984,0.097526988745119,0.145749605022835,0.722586325702473]);
 hold off
 end
