@@ -6,7 +6,7 @@
 % window. Average across trials and baseline corrected when necessary. 
 clear
 
-loop = 1; % 1 = loop thru all files; 0 requires file to be specified
+loop = 0; % 1 = loop thru all files; 0 requires file to be specified
 %% Start
 
 if loop == true
@@ -31,7 +31,7 @@ end
 
 %% Optional (Loop thru all sessions on D: Drive)
 clear z
-for z = 2:6
+% for z = 2:6
 
 
 
@@ -56,7 +56,7 @@ addpath(genpath(nbanalysisdir))
 addpath(genpath(datadir))
 
 if loop == false
-    BRdatafile = '160505_E_mcosinteroc002'; 
+    BRdatafile = '170719_I_mcosinteroc003'; 
 else 
 
     BRdatafile = char(name(z));
@@ -265,16 +265,17 @@ CSD = mod_iCSD(LFP')';  % this function takes LFP in channels x samples so let's
 CSD = padarray(CSD,[0 1],NaN,'replicate'); % pad array if you want to keep the matrix the same size on the channel
                                            % dimension as the other matrices
 
-%% trigger the neural data to the event codes of interest                                         
+%% trigger the neural data to the event codes of interest  
+STIM.off = round(((STIM.offsets(1)-STIM.onsets(1))/(30)),0); % stimulus offset as calculated from grating text file.
 pre   = -50; % 50ms before stim onset
-post  = (round(10^-2*STIM.off)/10^-2)+100; % ~100 ms after stim offset
-%post = 600;
+% post  = (round(10^-2*STIM.off)/10^-2)+100; % ~100 ms after stim offset
+post = 600;
 STIM.LFP.raw = trigData(LFP,STIM.onsetsdown,-pre,post); %pre variable is in absolute units 
 STIM.CSD.raw  = trigData(CSD,STIM.onsetsdown,-pre,post); 
 STIM.aMUA.raw = trigData(MUA,STIM.onsetsdown,-pre,post); 
 
 %% Setting up reference window
-STIM.off = round(((STIM.offsets(1)-STIM.onsets(1))/(30)),0); % stimulus offset as calculated from grating text file.
+
 STIM.refwin = pre:post;
 
 %% Averaging across trials & baseline correct
@@ -559,5 +560,5 @@ save(sprintf('%s',BRdatafile),'STIM','BRdatafile');
 
 fprintf('%s.mat saved\n',BRdatafile);
 
-clearvars -except name loop
-end
+%clearvars -except name loop
+%end

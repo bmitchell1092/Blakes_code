@@ -72,7 +72,7 @@ cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_bar-contrasts-transient',BRdatafile), '-jpg', '-transparent');
 
 %% All contacts, collapsed across time, sectioned by contrast level (Tightplot)
-figure('position',[185,41.666666666666664,645.3333333333333,599.3333333333333]);
+figure('position',[185,41.66,645.3333333333333,599.3333333333333]);
 
 [ha, pos] = tight_subplot(2,3,[0.005 .03],[.10 .2],[.05 .05]); %channels, columns, [spacing], [bottom and top margin], [left and right margin]
 clear c
@@ -258,19 +258,21 @@ rcontrast = round(STIM.levels,2,'significant');
 
 figure('Position', [155,98,965,487]);
 
-labels = {0, .22, .45, .9,[],0,.22,.45,.9}; format bank;
+labels = {0, 22, 45, 90,[],0,22,45,90}; format bank;
 
 clear L c
 for L = 1:3
 subplot(2,3,L)
-bar([STIM.BIN.aMUA.pc.coll_layers(:,2,L) STIM.BIN.aMUA.pc.coll_layers(:,3,L)],1,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
+x1 = [STIM.BIN.aMUA.pc.coll_layers(:,2,L);NaN;STIM.BIN.aMUA.pc.coll_layers(:,3,L)];
+x2 = [STIM.DE.aMUA.pc.coll_layers(:,2,L);NaN;STIM.DE.aMUA.pc.coll_layers(:,3,L)];
+bar(x1,.8,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 hold on
-bar([STIM.DE.aMUA.pc.coll_layers(:,2,L) STIM.DE.aMUA.pc.coll_layers(:,3,L)],0.6,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
-bar([STIM.NDE.aMUA.pc.coll_layers(:,2,L) STIM.NDE.aMUA.pc.coll_layers(:,3,L)],0.4,'FaceColor',[.2, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
+bar(x2,0.6,'FaceColor',[0, 0.4470, 0.7410],'EdgeColor','k','LineWidth',0.8);
+%bar([STIM.NDE.aMUA.pc.coll_layers(:,2,L);NaN; STIM.NDE.aMUA.pc.coll_layers(:,3,L)],0.4,'FaceColor',[.2, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
 ylim([-5 55]);
-xticklabels(rcontrast)
-xlabel('contrast')
+xticklabels(labels)
+xlabel('% Contrast');
 ylabel('Relative aMUA response');
     if L == 1
         title('Supragranular');
@@ -286,12 +288,12 @@ end
 clear L c
 for L = 1:3
 subplot(2,3,L+3)
-bar([STIM.calc.aMUA.pc.subtract.BIN_DE.coll_layers(:,2,L) STIM.calc.aMUA.pc.subtract.BIN_DE.coll_layers(:,3,L)],1,'FaceColor',[0.8500, 0.5250, 0.7980],'EdgeColor','k','LineWidth',0.8);
+bar([STIM.calc.aMUA.pc.subtract.BIN_DE.coll_layers(:,2,L);NaN; STIM.calc.aMUA.pc.subtract.BIN_DE.coll_layers(:,3,L)],.8,'FaceColor',[0.2, 0.2, 0.2],'EdgeColor','k','LineWidth',0.8);
 hold on
-bar([STIM.calc.aMUA.pc.subtract.BIN_NDE.coll_layers(:,2,L) STIM.calc.aMUA.pc.subtract.BIN_NDE.coll_layers(:,3,L)],0.6,'FaceColor',[0.2500, 0.250, 0.2980],'EdgeColor','k','LineWidth',0.8);
+%bar([STIM.calc.aMUA.pc.subtract.BIN_NDE.coll_layers(:,2,L);NaN; STIM.calc.aMUA.pc.subtract.BIN_NDE.coll_layers(:,3,L)],0.6,'FaceColor',[0.2500, 0.250, 0.2980],'EdgeColor','k','LineWidth',0.8);
 set(gca,'box','off');
 ylim([-5 30]);
-xticklabels(rcontrast)
+xticklabels(labels)
 xlabel('contrast')
 ylabel('difference');
 hold off
