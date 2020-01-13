@@ -448,7 +448,7 @@ STIM.calc.aMUA.pc.fchange.BIN_DE = ((STIM.BIN.aMUA.pc.coll_layers(:,:,:)-STIM.DE
 STIM.calc.aMUA.pc.fchange.BIN_NDE = ((STIM.BIN.aMUA.pc.coll_layers(:,:,:)-STIM.DE.aMUA.pc.coll_layers(:,:,:))./(STIM.NDE.aMUA.pc.coll_layers(:,:,:)));
 STIM.calc.aMUA.pc.fchange.DE_NDE = ((STIM.DE.aMUA.pc.coll_layers(:,:,:)-STIM.NDE.aMUA.pc.coll_layers(:,:,:))./(STIM.NDE.aMUA.pc.coll_layers(:,:,:)));
 
-%% Models (LSM | QSM)
+%% Models (LSM | QSM | NRM)
 % Model Prediction: Linear Summation (LSM)
 
 % LSMvsBIN
@@ -479,17 +479,34 @@ STIM.BIN.aMUA.pc_QSM.layers = sqrt((STIM.DE.aMUA.pc.layers(:,:,:).^2) + (STIM.ND
 STIM.BIN.aMUA.pc_QSM.coll = sqrt((STIM.DE.aMUA.pc.coll(:,:,:).^2) + (STIM.NDE.aMUA.pc.coll(:,:,:).^2));
 STIM.BIN.aMUA.pc_QSM.coll_layers = sqrt((STIM.DE.aMUA.pc.coll_layers(:,:,:).^2) + (STIM.NDE.aMUA.pc.coll_layers(:,:,:).^2));
 STIM.BIN.CSD.QSM = -sqrt((STIM.DE.CSD.bsl(:,:,:).^2) + (STIM.NDE.CSD.bsl(:,:,:).^2));
-STIM.BIN.CSD.NORM = (STIM.DE.CSD.bsl(:,:,:) + STIM.NDE.CSD.bsl(:,:,:))./2;
 
 % QSMvsDI
+clear i
 for i = 1:length(sDE)
 STIM.DI.aMUA.pc_QSM.all(i,:,:) = sqrt((STIM.DE.aMUA.pc.all(sDE(i),:,:).^2) + (STIM.NDE.aMUA.pc.all(sNDE(i),:,:).^2));
 STIM.DI.aMUA.pc_QSM.layers(i,:,:) = sqrt((STIM.DE.aMUA.pc.layers(sDE(i),:,:).^2) + (STIM.NDE.aMUA.pc.layers(sNDE(i),:,:).^2));
 STIM.DI.aMUA.pc_QSM.coll(i,:,:) = sqrt((STIM.DE.aMUA.pc.coll(sDE(i),:,:).^2) + (STIM.NDE.aMUA.pc.coll(sNDE(i),:,:).^2));
 STIM.DI.aMUA.pc_QSM.coll_layers(i,:,:) = sqrt((STIM.DE.aMUA.pc.coll_layers(sDE(i),:,:).^2) + (STIM.NDE.aMUA.pc.coll_layers(sNDE(i),:,:).^2));
 STIM.DI.CSD.QSM(i,:,:) = sqrt((STIM.DE.CSD.bsl(sDE(i),:,:).^2) + (STIM.NDE.CSD.bsl(sNDE(i),:,:).^2));
-STIM.DI.CSD.NORM(i,:,:) = (STIM.DE.CSD.bsl(sDE(i),:,:) + (STIM.NDE.CSD.bsl(sNDE(i),:,:)))./2;
 end
+
+% NRMvsBIN
+
+STIM.BIN.aMUA.pc_NRM.all = (STIM.DE.aMUA.pc.all(:,:,:)+STIM.NDE.aMUA.pc.all(:,:,:))./2;
+STIM.BIN.aMUA.pc_NRM.layers = (STIM.DE.aMUA.pc.layers(:,:,:)+STIM.NDE.aMUA.pc.layers(:,:,:))./2;
+STIM.BIN.aMUA.pc_NRM.coll = (STIM.DE.aMUA.pc.coll(:,:,:)+STIM.NDE.aMUA.pc.coll(:,:,:))./2;
+STIM.BIN.aMUA.pc_NRM.coll_layers = (STIM.DE.aMUA.pc.coll_layers(:,:,:)+STIM.NDE.aMUA.pc.coll_layers(:,:,:))./2;
+STIM.BIN.CSD.NRM = (STIM.DE.CSD.bsl(:,:,:)+STIM.NDE.CSD.bsl(:,:,:))./2;
+
+% NRMvsDI
+for i = 1:length(sDE) % sDE and sNDE are defined earlier in this section 
+STIM.DI.aMUA.pc_NRM.all(i,:,:) = (STIM.DE.aMUA.pc.all(sDE(i),:,:) + STIM.NDE.aMUA.pc.all(sNDE(i),:,:))./2;
+STIM.DI.aMUA.pc_NRM.layers(i,:,:) = (STIM.DE.aMUA.pc.layers(sDE(i),:,:) + STIM.NDE.aMUA.pc.layers(sNDE(i),:,:))./2;
+STIM.DI.aMUA.pc_NRM.coll(i,:,:) = (STIM.DE.aMUA.pc.coll(sDE(i),:,:) + STIM.NDE.aMUA.pc.coll(sNDE(i),:,:))./2;
+STIM.DI.aMUA.pc_NRM.coll_layers(i,:,:) = (STIM.DE.aMUA.pc.coll_layers(sDE(i),:,:) + STIM.NDE.aMUA.pc.coll_layers(sNDE(i),:,:))./2;
+STIM.DI.CSD.NRM(i,:,:) = (STIM.DE.CSD.bsl(sDE(i),:,:) + STIM.NDE.CSD.bsl(sNDE(i),:,:))./2;
+end
+
 %% End 
 if loop == false
 fprintf('\nWe did it, gang.\n');
