@@ -304,7 +304,7 @@ sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_BINvsMON',BRdatafile), '-jpg', '-transparent');
 
-%% Bar Graphs: Model Predictions vs BINOCULAR response
+%% Bar Graphs: BIN vs Models
 
 figure('Position', [155,98,965,487]);
 
@@ -375,7 +375,7 @@ labels = {'22|45', '22|90', '45|22', '45|90','90|22','90|45',[],'22|45','22|90',
 clear L c
 for L = 1:3
 subplot(2,3,L)
-bar([STIM.DI.aMUA.pc_LSM.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc_LSM.coll_layers(:,3,L)],0.8,'FaceColor',[1, 1, 1],'linestyle','--','EdgeColor','k','LineWidth',0.8);
+bar([STIM.DI.aMUA.pc_NRM.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc_NRM.coll_layers(:,3,L)],0.8,'FaceColor',[1, 1, 1],'linestyle','--','EdgeColor','k','LineWidth',0.8);
 hold on
 bar([STIM.DI.aMUA.pc.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc.coll_layers(:,3,L)],0.6,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 bar([STIM.DI.aMUA.pc_QSM.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc_QSM.coll_layers(:,3,L)],0.4,'FaceAlpha',.05,'linestyle',':','EdgeColor','k','LineWidth',1);
@@ -418,70 +418,100 @@ end
 
 sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','none');
 
-cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_DIvsModels',BRdatafile), '-jpg', '-transparent');
+% cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+% export_fig(sprintf('%s_DIvsModels',BRdatafile), '-jpg', '-transparent');
 
 %% Interesting plots
 
 %% Model difference over time
 
-figure('position',[145,88.33333333333333,786.6666666666666,541.3333333333333]);
+figure('position',[145,47,984.6666666666665,582.6666666666665]);
 clear i L
 for L = 1:3
 subplot(3,3,L)
-plot(smooth(STIM.BIN.aMUA.pc_QSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-b','linewidth',2);
+plot(smooth(STIM.BIN.aMUA.pc_QSM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-b','linewidth',1.5);
 hold on
-plot(smooth(STIM.BIN.aMUA.pc_LSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-r','linewidth',2);
-ylim([-10 25])
+plot(smooth(STIM.BIN.aMUA.pc_NRM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-r','linewidth',1.5);
+plot(smooth(STIM.BIN.aMUA.pc_LSM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-g','linewidth',1.5);
+ylim([-30 30])
 xlim([0 600])
-xlabel('time (ms)');
-ylabel('difference');
-hline(0,'-.k')
-vline(STIM.off,'-.k')
+set(gca,'box','off','linewidth',1);
+hl = hline(0,'k');
+set(hl,'linewidth',1);
+vl = vline(STIM.off,'-.k');
+set(vl,'linewidth',.8);
     if L == 1
-        title('Supragranular');
-        lgd = legend('QSM','LSM','location','northwest');
-        lgd.FontSize = 4;
+        title('Supragranular','FontSize',12);
+                xlabel('time','FontSize',12);
+        ylabel('difference','FontSize',12);
+                        xticklabels([]);
+                yticklabels([]);
     elseif L == 2
-            title('Granular');
+            title('Granular','FontSize',12);
+%             lgd = legend('Quadratic summation','Simple normalization','Linear summation','location','northeast');
+%             lgd.FontSize = 8;
+                xticklabels([]);
+                yticklabels([]);
         else 
-            title('Infragranular');
+            title('Infragranular','FontSize',12);
+            xticklabels([]);
+            yticklabels([]);
     end
 end
 
 clear i L
 for L = 1:3
 subplot(3,3,L+3)
-plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_QSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-b','linewidth',2);
+plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_QSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-b','linewidth',1.5);
 hold on
-plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_LSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-r','linewidth',2);
-ylim([-10 25])
+plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_NRM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-r','linewidth',1.5);
+plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_LSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-g','linewidth',1.5);
+ylim([-30 30])
 xlim([0 600])
-xlabel('time (ms)');
-ylabel('difference');
-hline(0,'-.k')
-vline(STIM.off,'k')
+hl = hline(0,'k');
+set(hl,'linewidth',1);
+vl = vline(STIM.off,'-.k');
+set(vl,'linewidth',.8);
+set(gca,'box','off','linewidth',1);
+xticklabels([]);
+yticklabels([]);
+    if L == 1
+                xlabel('time','FontSize',12);
+        ylabel('difference','FontSize',12);
+    end
 end
 
 clear i L
 for L = 1:3
 subplot(3,3,L+6)
-plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_QSM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-b','linewidth',2);
+plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_QSM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-b','linewidth',1.5);
 hold on
-plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_LSM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-r','linewidth',2);
-ylim([-10 25])
+plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_NRM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-r','linewidth',1.5);
+plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_LSM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-g','linewidth',1.5);
+ylim([-30 30])
 xlim([0 600])
-xlabel('time (ms)');
-ylabel('difference');
-hline(0,'-.k')
-vline(STIM.off,'k')
+hl = hline(0,'k');
+set(hl,'linewidth',1);
+vl = vline(STIM.off,'-.k');
+set(vl,'linewidth',.8);
+set(gca,'box','off','linewidth',1);
 hold off
+xticklabels([]);
+yticklabels([]);
+    if L == 1
+        xlabel('time','FontSize',12);
+        ylabel('difference','FontSize',12);
+    else
+xticklabels([]);
+yticklabels([]);
+    end
 end
 
-sgtitle("Model difference from Binocular response (0 represents no difference)");
+sgtitle("Model difference from Binocular response (midline = no difference)");
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_model_diff_overtime',BRdatafile), '-jpg', '-transparent');
+saveas(gcf,strcat(sprintf('%s_model_diff_overtime',BRdatafile),'.svg'));
 
 %% CSD: DE vs BIN
 figure('position',[166.3333333333333,85,990.6666666666667,537.3333333333333]);
