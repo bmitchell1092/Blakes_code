@@ -10,7 +10,7 @@ loop = 0; % 1 = loop thru all files; 0 requires file to be specified
 %% Start
 
 if loop == true
-    myFolder = 'D:\DATA 2\';  % Specify the folder where the files live.
+    myFolder = 'D:\DATA\';  % Specify the folder where the files live.
 
     % Check to make sure that folder actually exists.  Warn user if it doesn't.
     if ~isfolder(myFolder)
@@ -48,7 +48,7 @@ else
     nbanalysisdir   = '/users/bmitc/Documents/MATLAB/nbanalysis/';       %directory with various tools for opening, loading, and processing 
     %datadir  = '/users/bmitc/Box Sync/DATA/';                            %this is my Vanderbilt Box sync 
     %datadir = 'users/bmitc/Documents/MATLAB/data/';
-    datadir = 'D:\DATA 2\';
+    datadir = 'D:\DATA\';
 end
 
 addpath(genpath(npmkdir))
@@ -56,7 +56,7 @@ addpath(genpath(nbanalysisdir))
 addpath(genpath(datadir))
 
 if loop == false
-    BRdatafile = '170719_I_mcosinteroc003'; 
+    BRdatafile = '160420_E_mcosinteroc002'; 
 else 
 
     BRdatafile = char(name(z));
@@ -319,17 +319,22 @@ STIM.ori = unique(STIM.tilt); % retrieves unique orientations
 
 clear i
 for i = 1:length(STIM.levels)  % monocular (DE) contrast conditions
-STIM.conditions.DE(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == 0; 
+STIM.conditions.DE(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == 0;
+    %& STIM.tilt == STIM.ori(2);
 end
 
 clear i 
 for i = 1:length(STIM.levels)  % monocular (NDE) contrast conditions
-STIM.conditions.NDE(i,:) = STIM.contrast == 0 & STIM.fixedc == STIM.levels(i); 
+STIM.conditions.NDE(i,:) = STIM.contrast == 0 & STIM.fixedc == STIM.levels(i);
+    %& STIM.tilt == STIM.ori(2);
+ 
 end
 
 % dioptic contrast (same contrast in two eyes)
 for i = 1:length(STIM.levels)  
-STIM.conditions.BIN(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == STIM.levels(i); 
+STIM.conditions.BIN(i,:) = STIM.contrast == STIM.levels(i) & STIM.fixedc == STIM.levels(i);
+    %& STIM.tilt == STIM.ori(2);
+
 end
 
 % dichoptic contrast (different contrast in two eyes)
@@ -572,7 +577,7 @@ else
     fprintf('\nSaving workspace...\n');
 end
 
-cd('D:\mcosinteroc_new\')
+cd('D:\mcosinteroc_tilt\')
 save(sprintf('%s',BRdatafile),'STIM','BRdatafile');
 
 fprintf('%s.mat saved\n',BRdatafile);
