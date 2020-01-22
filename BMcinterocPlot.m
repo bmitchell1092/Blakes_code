@@ -306,7 +306,7 @@ export_fig(sprintf('%s_BINvsMON',BRdatafile), '-jpg', '-transparent');
 
 %% Bar Graphs: BIN vs Models
 
-figure('Position', [155,98,965,487]);
+figure('Position', [155,41.666666666666664,994.6666666666665,599.3333333333333]);
 
 clear L c
 for L = 1:3
@@ -364,7 +364,7 @@ ylabel('difference from model');
 hold off
 end
 
-sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','none');
+%sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','none');
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_BINvsModels',BRdatafile), '-jpg', '-transparent');
@@ -423,37 +423,34 @@ sgtitle({'Binned contacts by layer | aMUA responses',BRdatafile},'Interpreter','
 
 %% Interesting plots
 
-%% Model difference over time
+%% Models and Data over time
 
 figure('position',[145,47,984.6666666666665,582.6666666666665]);
 clear i L
 for L = 1:3
 subplot(3,3,L)
-plot(smooth(STIM.BIN.aMUA.pc_QSM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-b','linewidth',1.5);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-k','linewidth',2);
 hold on
-plot(smooth(STIM.BIN.aMUA.pc_NRM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-r','linewidth',1.5);
-plot(smooth(STIM.BIN.aMUA.pc_LSM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-g','linewidth',1.5);
-ylim([-30 30])
-xlim([0 600])
-set(gca,'box','off','linewidth',1);
-hl = hline(0,'k');
-set(hl,'linewidth',1);
-vl = vline(STIM.off,'-.k');
-set(vl,'linewidth',.8);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_LSM.layers(2,:,L),0.1,'rloess'),'-g','linewidth',1);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_QSM.layers(2,:,L),0.1,'rloess'),'-b','linewidth',1);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_NRM.layers(2,:,L),0.1,'rloess'),'-r','linewidth',1);
+ylim([-5 85])
+xlim([-50 550])
+set(gca,'box','off','linewidth',1,'FontSize',12);
     if L == 1
-        title('Supragranular','FontSize',12);
-                xlabel('time','FontSize',12);
-        ylabel('difference','FontSize',12);
-                        xticklabels([]);
-                yticklabels([]);
+        title('Supragranular');
+%                 lgd = legend('Data','LSM','QSM','AVE','location','northeast');
+%                 lgd.FontSize = 6;
+                ylabel(sprintf('response\n (percent change)'));
+                xlabel('time (ms)');
+                %xticklabels([]);
+                %yticklabels([]);
     elseif L == 2
-            title('Granular','FontSize',12);
-%             lgd = legend('Quadratic summation','Simple normalization','Linear summation','location','northeast');
-%             lgd.FontSize = 8;
+            title('Granular');
                 xticklabels([]);
                 yticklabels([]);
         else 
-            title('Infragranular','FontSize',12);
+            title('Infragranular');
             xticklabels([]);
             yticklabels([]);
     end
@@ -462,56 +459,114 @@ end
 clear i L
 for L = 1:3
 subplot(3,3,L+3)
-plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_QSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-b','linewidth',1.5);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-k','linewidth',2);
 hold on
-plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_NRM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-r','linewidth',1.5);
-plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_LSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-g','linewidth',1.5);
-ylim([-30 30])
-xlim([0 600])
-hl = hline(0,'k');
-set(hl,'linewidth',1);
-vl = vline(STIM.off,'-.k');
-set(vl,'linewidth',.8);
-set(gca,'box','off','linewidth',1);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_LSM.layers(3,:,L),0.1,'rloess'),'-g','linewidth',1);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_QSM.layers(3,:,L),0.1,'rloess'),'-b','linewidth',1);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_NRM.layers(3,:,L),0.1,'rloess'),'-r','linewidth',1);
+ylim([-5 85])
+xlim([-50 550])
+set(gca,'box','off','linewidth',1,'FontSize',12);
 xticklabels([]);
 yticklabels([]);
-    if L == 1
-                xlabel('time','FontSize',12);
-        ylabel('difference','FontSize',12);
-    end
 end
 
 clear i L
 for L = 1:3
 subplot(3,3,L+6)
-plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_QSM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-b','linewidth',1.5);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-k','linewidth',2);
 hold on
-plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_NRM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-r','linewidth',1.5);
-plot(smooth(STIM.refwin,STIM.BIN.aMUA.pc_LSM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-g','linewidth',1.5);
-ylim([-30 30])
-xlim([0 600])
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_LSM.layers(4,:,L),0.1,'rloess'),'-g','linewidth',1);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_QSM.layers(4,:,L),0.1,'rloess'),'-b','linewidth',1);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_NRM.layers(4,:,L),0.1,'rloess'),'-r','linewidth',1);
+ylim([-5 85])
+xlim([-50 550])
+set(gca,'box','off','linewidth',1,'FontSize',12);
+xticklabels([]);
+yticklabels([]);
+end
+
+%sgtitle("Model difference from Binocular response (midline = no difference)");
+
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+saveas(gcf,strcat(sprintf('%s_models_over-time-Allori',BRdatafile),'.svg'));
+
+%% Model difference over time
+
+figure('position',[145,47,984.6666666666665,582.6666666666665]);
+clear i L
+for L = 1:3
+subplot(3,3,L)
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_LSM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-g','linewidth',1);
+hold on
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_QSM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-b','linewidth',1);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_NRM.layers(2,:,L)-STIM.BIN.aMUA.pc.layers(2,:,L),0.1,'rloess'),'-r','linewidth',1);
+ylim([-25 50])
+xlim([-50 550])
+set(gca,'box','off','linewidth',1,'FontSize',12);
 hl = hline(0,'k');
 set(hl,'linewidth',1);
-vl = vline(STIM.off,'-.k');
-set(vl,'linewidth',.8);
-set(gca,'box','off','linewidth',1);
-hold off
-xticklabels([]);
-yticklabels([]);
     if L == 1
-        xlabel('time','FontSize',12);
-        ylabel('difference','FontSize',12);
-    else
-xticklabels([]);
-yticklabels([]);
+        title('Supragranular');
+%                 lgd = legend('LSM','QSM','AVE','location','northeast');
+%                 lgd.FontSize = 6;
+                ylabel(sprintf('model residual'));
+                xlabel('time (ms)');
+                %xticklabels([]);
+                %yticklabels([]);
+    elseif L == 2
+            title('Granular');
+                xticklabels([]);
+                yticklabels([]);
+        else 
+            title('Infragranular');
+            xticklabels([]);
+            yticklabels([]);
     end
 end
 
-sgtitle("Model difference from Binocular response (midline = no difference)");
+clear i L
+for L = 1:3
+subplot(3,3,L+3)
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_LSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-g','linewidth',1);
+hold on
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_QSM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-b','linewidth',1);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_NRM.layers(3,:,L)-STIM.BIN.aMUA.pc.layers(3,:,L),0.1,'rloess'),'-r','linewidth',1);
+ylim([-25 50])
+xlim([-50 550])
+set(gca,'box','off','linewidth',1,'FontSize',12);
+hl = hline(0,'k');
+set(hl,'linewidth',1.5);
+xticklabels([]);
+yticklabels([]);
+%     if L == 3
+%         ylim([-10 30])
+%     end
+end
+
+clear i L
+for L = 1:3
+subplot(3,3,L+6)
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_LSM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-g','linewidth',1);
+hold on
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_QSM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-b','linewidth',1);
+plot(STIM.refwin,smooth(STIM.BIN.aMUA.pc_NRM.layers(4,:,L)-STIM.BIN.aMUA.pc.layers(4,:,L),0.1,'rloess'),'-r','linewidth',1);
+ylim([-25 50])
+xlim([-50 550])
+set(gca,'box','off','linewidth',1,'FontSize',12);
+hl = hline(0,'k');
+set(hl,'linewidth',1.5);
+xticklabels([]);
+yticklabels([]);
+%     if L == 3
+%         ylim([-10 30])
+%     end
+end
+
+%sgtitle("Model difference from Binocular response (midline = no difference)");
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
-export_fig(sprintf('%s_model_diff_overtime',BRdatafile), '-jpg', '-transparent');
-saveas(gcf,strcat(sprintf('%s_model_diff_overtime',BRdatafile),'.svg'));
+saveas(gcf,strcat(sprintf('%s_model_diff_overtime-Allori',BRdatafile),'.svg'));
 
 %% CSD: DE vs BIN
 figure('position',[166.3333333333333,85,990.6666666666667,537.3333333333333]);
