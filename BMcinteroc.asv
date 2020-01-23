@@ -313,9 +313,7 @@ end
 %% Defining conditions of interest
 % This is to create logical matrices for the different conditions
 % Independent variables of interest: contrast, ocularity, and orientation 
-% michele : here's how i'm currently defining stimulus conditions: 2
-% monocular conditions (DE and NDE), two binocular conditions (BIN and DI).
-% Currently, orientation and phase are being disregarded  
+% michele : everything here was used to generate the data for the poster
 
 STIM.levels = unique(STIM.contrast);  % retrieves unique contrast levels
 STIM.ori = unique(STIM.tilt); % retrieves unique orientations
@@ -384,6 +382,7 @@ for m = 1:size(STIM.conditions.DI,1)
     STIM.DI.CSD.raw(m,:,:) = mean(STIM.CSD.raw(:,:,STIM.conditions.DI(m,:)),3);
 end
 
+%
 % BSL CSD
         STIM.DE.CSD.bsl(:,:,:) = (STIM.DE.CSD.raw(:,:,:)-mean(STIM.DE.CSD.raw(:,25:75,:),2)); % baseline corrected raw
         STIM.NDE.CSD.bsl(:,:,:) = (STIM.NDE.CSD.raw(:,:,:)-mean(STIM.NDE.CSD.raw(:,25:75,:),2)); % baseline corrected raw
