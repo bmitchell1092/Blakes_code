@@ -18,9 +18,9 @@ function [CSD] = mod_iCSD(var)
                 out(i,j) = 1/d^2;
             else
                 out(i,j) = 0;
-            end;
-        end;
-    end;
+            end
+        end
+    end
 
     
     cond  = 0.00040;       % conductivity of cortex (estimate from Logethetis, Kayser, Oeltermann 2007)

@@ -10,7 +10,7 @@ loop = 0; % 1 = loop thru all files; 0 requires file to be specified
 %% Start
 
 if loop == true
-    myFolder = 'D:\DATA\';  % Specify the folder where the files live.
+    myFolder = 'D:\DATA (unused)\';  % Specify the folder where the files live.
 
     % Check to make sure that folder actually exists.  Warn user if it doesn't.
     if ~isfolder(myFolder)
@@ -48,7 +48,7 @@ else
     nbanalysisdir   = '/users/bmitc/Documents/MATLAB/nbanalysis/';       %directory with various tools for opening, loading, and processing 
     %datadir  = '/users/bmitc/Box Sync/DATA/';                            %this is my Vanderbilt Box sync 
     %datadir = 'users/bmitc/Documents/MATLAB/data/';
-    datadir = 'D:\DATA\';
+    datadir = 'D:\DATA (unused)\';
 end
 
 addpath(genpath(npmkdir))
@@ -56,7 +56,7 @@ addpath(genpath(nbanalysisdir))
 addpath(genpath(datadir))
 
 if loop == false
-    BRdatafile = '160420_E_mcosinteroc002'; 
+    BRdatafile = '160427_E_mcosinteroc001'; 
 else 
 
     BRdatafile = char(name(z));
@@ -468,8 +468,8 @@ STIM.calc.aMUA.pc.fchange.DE_NDE = ((STIM.DE.aMUA.pc.coll_layers(:,:,:)-STIM.NDE
 STIM.BIN.aMUA.pc_LSM.all = STIM.DE.aMUA.pc.all(:,:,:)+STIM.NDE.aMUA.pc.all(:,:,:);
 STIM.BIN.aMUA.pc_LSM.layers = STIM.DE.aMUA.pc.layers(:,:,:)+STIM.NDE.aMUA.pc.layers(:,:,:);
 STIM.BIN.aMUA.pc_LSM.coll = STIM.DE.aMUA.pc.coll(:,:,:)+STIM.NDE.aMUA.pc.coll(:,:,:);
-STIM.BIN.aMUA.pc_LSM.coll_layers = STIM.DE.aMUA.pc.coll_layers(:,:,:)+STIM.NDE.aMUA.pc.coll_layers(:,:,:);
-STIM.BIN.CSD.LSM = STIM.DE.CSD.bsl(:,:,:)+STIM.NDE.CSD.bsl(:,:,:);
+STIM.BIN.aMUA.pc_LSM.coll_layers = STIM.DE.aMUA.pc.coll_layers(:,:,:) + STIM.NDE.aMUA.pc.coll_layers(:,:,:);
+STIM.BIN.CSD.LSM = STIM.DE.CSD.bsl(:,:,:) + STIM.NDE.CSD.bsl(:,:,:);
 
 % LSMvsDI
 
@@ -556,7 +556,7 @@ hold on
 colormap(flipud(colormap('jet'))); % this makes the red color the sinks and the blue color the sources (convention)
 colorbar; v = vline(0); set(v,'color','k','linestyle','-','linewidth',1);
 set(gca,'tickdir','out');  
-climit = max(abs(get(gca,'CLim'))*1);
+climit = max(abs(get(gca,'CLim'))*.5);
 set(gca,'CLim',[-climit climit],'Box','off','TickDir','out')
 plot([STIM.off STIM.off], ylim,'k','linestyle','-.','linewidth',0.5)
 title('Interpolated CSD')
@@ -585,7 +585,7 @@ else
     fprintf('\nSaving workspace...\n');
 end
 
-cd('D:\mcosinteroc_tilt\')
+cd('D:\mcosinteroc_all-E\')
 save(sprintf('%s',BRdatafile),'STIM','BRdatafile');
 
 fprintf('%s.mat saved\n',BRdatafile);

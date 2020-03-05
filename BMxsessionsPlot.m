@@ -54,7 +54,7 @@ figure('position',[213.6,149.6,724.6666,425.3334]);
 
 %% Bar Graphs: Conditions
 
-rcontrast = round(tmp.STIM.levels,2,'significant');
+%rcontrast = round(tmp.STIM.levels,2,'significant');
 
 figure('Position', [155,98,965,487]);
 

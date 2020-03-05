@@ -1,11 +1,11 @@
-function [supra,gran,infra] = layerLog(file)
+function [supra,gran,infra] = layerLog_BM(file)
 %layerLog Retrieves contact information from this reportoire
 %   Input BRdatafile, output three variable
 switch file
     case '160418_E_mcosinteroc001'
-        supra = 13:19;
-        gran = 20:25;
-        infra = 26:31;
+        supra = 13:18;
+        gran = 19:22;
+        infra = 23:30;
     case '160420_E_mcosinteroc002'
         supra = 13:20;
         gran = 21:26;

@@ -65,8 +65,8 @@ hold off
     end
 end
 
-sgtitle({'Monocular vs Binocular contrast response function (MUA)'...
-    'Responses collapsed across initial 100ms',BRdatafile},'Interpreter','none');
+sgtitle({'Monocular vs Binocular responses'...
+    'Collapsed across transient window (40-100ms)',BRdatafile},'Interpreter','none');
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 export_fig(sprintf('%s_bar-contrasts-transient',BRdatafile), '-jpg', '-transparent');
@@ -375,12 +375,12 @@ labels = {'22|45', '22|90', '45|22', '45|90','90|22','90|45',[],'22|45','22|90',
 clear L c
 for L = 1:3
 subplot(2,3,L)
-bar([STIM.DI.aMUA.pc_NRM.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc_NRM.coll_layers(:,3,L)],0.8,'FaceColor',[1, 1, 1],'linestyle','--','EdgeColor','k','LineWidth',0.8);
+bar([STIM.DI.aMUA.pc_LSM.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc_LSM.coll_layers(:,3,L)],0.8,'FaceColor',[1, 1, 1],'linestyle','--','EdgeColor','k','LineWidth',0.8);
 hold on
 bar([STIM.DI.aMUA.pc.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc.coll_layers(:,3,L)],0.6,'FaceColor',[0.8500, 0.3250, 0.0980],'EdgeColor','k','LineWidth',0.8);
 bar([STIM.DI.aMUA.pc_QSM.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc_QSM.coll_layers(:,3,L)],0.4,'FaceAlpha',.05,'linestyle',':','EdgeColor','k','LineWidth',1);
 set(gca,'box','off');
-ylim([-5 80]);
+ylim([-5 65]);
 xticklabels(labels)
 xlabel('contrast')
 ylabel('aMUA response');
@@ -404,7 +404,7 @@ bar([STIM.DI.aMUA.pc_LSM.coll_layers(:,2,L)-STIM.DI.aMUA.pc.coll_layers(:,2,L);N
 hold on
 bar([STIM.DI.aMUA.pc_QSM.coll_layers(:,2,L)-STIM.DI.aMUA.pc.coll_layers(:,2,L);NaN;STIM.DI.aMUA.pc_QSM.coll_layers(:,3,L)-STIM.DI.aMUA.pc.coll_layers(:,3,L)],0.8,'grouped','FaceColor',[1, 1, 1],'EdgeColor','k','LineWidth',1,'linestyle',':');
 set(gca,'box','off');
-ylim([-15 30]);
+ylim([-15 25]);
 xticklabels(labels);
 xtickangle(45)
 xlabel('contrast')
@@ -567,6 +567,75 @@ end
 
 cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
 saveas(gcf,strcat(sprintf('%s_model_diff_overtime-Allori',BRdatafile),'.svg'));
+
+%% Model difference over space
+
+cIndex = 4;
+
+switch cIndex
+    case 2
+        cLevel = '.22';
+    case 3
+        cLevel = '.45';
+    case 4
+        cLevel = '.90';
+end
+
+figure('position',[151,58.333,834.66,574.66]);
+clear i
+subplot(1,3,1)
+plot(flipud(squeeze(STIM.DE.aMUA.pc.coll(cIndex,2,:))),STIM.channels,'linewidth',1.5,'Color',[0, 0.4470, 0.7410]);
+hold on 
+plot(flipud(squeeze(STIM.NDE.aMUA.pc.coll(cIndex,2,:))),STIM.channels,'linewidth',.8','Color', [0, 0.4470, 0.7410]);
+grid on
+set(gca,'box','off','linewidth',1);
+xlim([-5 80]);
+%hline(0,':','BOL4')
+%ylim([-7 17])
+%yticklabels({'-0.5','0','0.5','1','1.5','2','2.5'})
+xlabel('MUA (percent change)','FontSize',12);
+legend(sprintf('%s DE',cLevel),sprintf('%s NDE',cLevel),'Location','northeast','orientation','vertical');
+title('Monocular responses','FontSize',12);
+ylabel('Depth (mm) relative to layer 4/5 boundary','FontSize',12);
+hold off
+
+subplot(1,3,2)
+plot(squeeze(STIM.BIN.aMUA.pc.coll(cIndex,2,:)),STIM.channels,'Color','r','linewidth',1.5);
+hold on 
+plot(squeeze(STIM.BIN.aMUA.pc_LSM.coll(cIndex,2,:)),STIM.channels,'linewidth',1.5,'linestyle','--','color',[.35 .4 .3]);
+plot(squeeze(STIM.BIN.aMUA.pc_QSM.coll(cIndex,2,:)),STIM.channels,'linewidth',1.5,'linestyle',':','color','k');
+plot(squeeze(STIM.BIN.aMUA.pc_NRM.coll(cIndex,2,:)),STIM.channels,'linewidth',1.5,'linestyle','-.','color','k');
+grid on
+xlim([-5 80]);
+%xticklabels([]);
+xlabel('MUA (percent change)','FontSize',12);
+yticklabels([]);
+%ylim([-7 17])
+set(gca,'box','off','linewidth',1);
+title(sprintf('Binocular response \nand Model prediction'),'FontSize',12);
+legend('BIN','LSM','QSM','NRM','Location','northeast','orientation','vertical');
+hold off
+
+subplot(1,3,3)
+plot(squeeze(STIM.BIN.aMUA.pc_LSM.coll(cIndex,2,:)-(STIM.BIN.aMUA.pc.coll(cIndex,2,:))),STIM.channels,'linewidth',1.5,'linestyle','--','color',[.35 .4 .3]);
+hold on
+plot(squeeze(STIM.BIN.aMUA.pc_QSM.coll(cIndex,2,:)-(STIM.BIN.aMUA.pc.coll(cIndex,2,:))),STIM.channels,'linewidth',1.5,'linestyle',':','color','k');
+plot(squeeze(STIM.BIN.aMUA.pc_NRM.coll(cIndex,2,:)-(STIM.BIN.aMUA.pc.coll(cIndex,2,:))),STIM.channels,'linewidth',1.5,'linestyle','-.','color','k');
+grid on
+xlim([-10 30]);
+%ylim([-7 17])
+%xticklabels([]);
+xlabel('MUA (difference)','FontSize',12)
+yticklabels([]);
+vl = vline(0, 'k');
+set(vl,'linewidth',1);
+set(gca,'box','off','linewidth',1);
+title(sprintf('Model difference \nfrom Binocular response'),'FontSize',12);
+legend('LSM-BIN','QSM-BIN','NRM-BIN','Location','northeast','orientation','vertical');
+hold off
+
+cd('C:\Users\bmitc\OneDrive\4. Vanderbilt\Maier Lab\Figures\')
+export_fig(sprintf('%s_model-space',BRdatafile), '-jpg', '-transparent');
 
 %% CSD: DE vs BIN
 figure('position',[166.3333333333333,85,990.6666666666667,537.3333333333333]);
